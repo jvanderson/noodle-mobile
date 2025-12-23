@@ -2,122 +2,153 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Shell Noodles (Mobile)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <title>Shell Noodles (iPhone Controls)</title>
   <style>
     :root { color-scheme: dark; --pad: 14px; }
-    html, body { margin:0; height:100%; background:#0b0f18; overflow:hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    html, body {
+      margin:0; height:100%;
+      background:#0b0f18; overflow:hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
     canvas { display:block; width:100vw; height:100vh; touch-action:none; }
 
     .hud {
       position: fixed; inset: 0; pointer-events:none;
       display:flex; align-items:flex-start; justify-content:space-between;
-      padding: calc(var(--pad) + env(safe-area-inset-top)) calc(var(--pad) + env(safe-area-inset-right)) var(--pad) calc(var(--pad) + env(safe-area-inset-left));
+      padding:
+        calc(var(--pad) + env(safe-area-inset-top))
+        calc(var(--pad) + env(safe-area-inset-right))
+        var(--pad)
+        calc(var(--pad) + env(safe-area-inset-left));
       color:#dbe6ff;
       text-shadow: 0 1px 0 rgba(0,0,0,.6);
       font-size:14px;
-      gap: 10px;
+      gap:10px;
     }
     .box {
       background: rgba(10,14,25,.55);
       border: 1px solid rgba(140,170,255,.18);
       border-radius: 12px;
       padding: 9px 11px;
-      backdrop-filter: blur(6px);
-      max-width: 360px;
+      backdrop-filter: blur(8px);
+      max-width: 380px;
     }
-    .title { font-weight:700; letter-spacing:.3px; margin:0 0 6px 0; }
-    .small { opacity:.85; line-height:1.35; }
-    .right { text-align:right; }
+    .title { font-weight:800; letter-spacing:.2px; margin:0 0 6px 0; }
+    .small { opacity:.88; line-height:1.35; }
+    .right { text-align:right; min-width: 140px; }
 
-    .big {
+    .overlay {
       position: fixed; inset:0;
       display:flex; align-items:center; justify-content:center;
-      pointer-events:none;
+      padding: 18px;
       color:#eaf1ff;
       text-shadow: 0 2px 0 rgba(0,0,0,.7);
-      padding: 16px;
+      pointer-events: none;
     }
-    .big .panel {
-      text-align:center;
-      padding:18px 18px;
-      border-radius: 16px;
-      border: 1px solid rgba(140,170,255,.18);
-      background: rgba(10,14,25,.60);
-      backdrop-filter: blur(8px);
-      max-width: 560px;
+    .panel {
       width: min(560px, 100%);
+      background: rgba(10,14,25,.65);
+      border: 1px solid rgba(140,170,255,.18);
+      border-radius: 16px;
+      padding: 18px 16px;
+      backdrop-filter: blur(10px);
+      text-align:center;
     }
-    .big h1 { margin:0 0 8px 0; font-size: 22px; }
-    .big p { margin: 8px 0; opacity:.9; line-height: 1.35; }
-    .kbd { display:inline-block; padding: 1px 7px; border-radius: 7px; border:1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); font-weight:650; }
+    .panel h1 { margin:0 0 8px 0; font-size: 22px; }
+    .panel p { margin: 8px 0; opacity:.92; line-height: 1.35; }
+    .kbd { display:inline-block; padding: 1px 7px; border-radius: 7px; border:1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); font-weight:700; }
     .hidden { display:none; }
 
     .controls {
-      position: fixed; inset: 0;
-      pointer-events:none;
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
+      position: fixed; left:0; right:0; bottom:0;
+      display:flex; justify-content:space-between; align-items:flex-end;
+      gap: 12px;
       padding:
         12px calc(12px + env(safe-area-inset-right))
         calc(12px + env(safe-area-inset-bottom))
         calc(12px + env(safe-area-inset-left));
-      gap: 12px;
-    }
-    .cluster {
       pointer-events:none;
-      display:flex;
-      gap: 10px;
-      align-items:flex-end;
     }
-    .btn {
-      pointer-events:auto;
+
+    .joyWrap { pointer-events:auto; touch-action:none; }
+    .joy {
+      width: 132px; height: 132px;
+      border-radius: 999px;
+      border: 1px solid rgba(140,170,255,.22);
+      background: rgba(10,14,25,.45);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 28px rgba(0,0,0,.40);
+      position: relative;
+      overflow: hidden;
+    }
+    .joy::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.09), rgba(255,255,255,0) 55%),
+        radial-gradient(circle at 70% 80%, rgba(140,170,255,.06), rgba(140,170,255,0) 55%);
+      pointer-events:none;
+    }
+    .joyLabel {
+      position:absolute; left:50%; top:50%;
+      transform: translate(-50%,-50%);
+      font-weight:800; letter-spacing:.6px;
+      font-size: 11px;
+      opacity: .65;
+      color:#dbe6ff;
+      user-select:none;
+      pointer-events:none;
+    }
+    .knob {
+      width: 58px; height: 58px;
+      border-radius: 18px;
+      border: 1px solid rgba(180,200,255,.35);
+      background: rgba(30,40,75,.55);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 26px rgba(0,0,0,.45);
+      position:absolute; left:50%; top:50%;
+      transform: translate(-50%,-50%);
+      display:flex; align-items:center; justify-content:center;
+      user-select:none;
+      pointer-events:none;
+    }
+    .knob::after{
+      content:"";
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.28), rgba(255,255,255,0) 60%);
+      opacity:.9;
+    }
+
+    .shootWrap { pointer-events:auto; touch-action:none; }
+    .shootBtn {
+      width: 94px; height: 94px;
+      border-radius: 26px;
+      border: 1px solid rgba(140,170,255,.28);
+      background: rgba(10,14,25,.45);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 28px rgba(0,0,0,.40);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:900; font-size: 14px; letter-spacing:.8px;
+      color:#eaf1ff;
       user-select:none;
       -webkit-user-select:none;
       -webkit-touch-callout:none;
-      touch-action:none;
-      width: 64px;
-      height: 64px;
-      border-radius: 18px;
-      border: 1px solid rgba(140,170,255,.25);
-      background: rgba(10,14,25,.55);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 22px rgba(0,0,0,.35);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#eaf1ff;
-      font-weight:800;
-      font-size: 18px;
     }
-    .btn:active, .btn.active {
-      transform: translateY(1px) scale(0.98);
-      background: rgba(30,40,75,.55);
-      border-color: rgba(180,200,255,.45);
-    }
-    .btn.small {
-      width: 64px;
-      height: 64px;
-      font-size: 16px;
-      font-weight: 800;
-    }
-    .btn.shoot {
-      width: 82px;
-      height: 82px;
-      border-radius: 24px;
-      font-size: 16px;
-      letter-spacing: .4px;
-    }
+    .shootBtn.active { transform: translateY(1px) scale(0.985); background: rgba(30,40,75,.55); border-color: rgba(180,200,255,.45); }
 
     @media (max-width: 380px) {
-      .btn { width: 58px; height: 58px; border-radius: 16px; }
-      .btn.shoot { width: 76px; height: 76px; border-radius: 22px; }
+      .joy { width: 120px; height: 120px; }
+      .knob { width: 54px; height: 54px; border-radius: 16px; }
+      .shootBtn { width: 86px; height: 86px; border-radius: 24px; }
       .hud { font-size: 13px; }
     }
-
     @media (min-width: 900px) and (pointer:fine) {
-      .controls { display:none; }
+      .joy { width: 112px; height: 112px; }
+      .knob { width: 50px; height: 50px; }
+      .shootBtn { width: 80px; height: 80px; }
     }
   </style>
 </head>
@@ -126,10 +157,12 @@
 
 <div class="hud">
   <div class="box">
-    <div class="title">Shell Noodles (Mobile)</div>
+    <div class="title">Shell Noodles</div>
     <div class="small">
-      Touch buttons for 4 commands. Keyboard still works:<br/>
-      <span class="kbd">←</span>/<span class="kbd">→</span> rotate, <span class="kbd">↑</span> thrust, <span class="kbd">Space</span> shoot.
+      iPhone controls:<br/>
+      <b>Left joystick</b> = rotate (left/right) + thrust (push up).<br/>
+      <b>Right button</b> = shoot (hold to rapid fire).<br/>
+      Keyboard: <span class="kbd">←</span>/<span class="kbd">→</span>, <span class="kbd">↑</span>, <span class="kbd">Space</span>.
     </div>
   </div>
   <div class="box right">
@@ -140,39 +173,39 @@
 </div>
 
 <div class="controls" aria-hidden="true">
-  <div class="cluster" style="pointer-events:none;">
-    <div class="btn" id="btnLeft"  aria-label="Rotate Left">⟲</div>
-    <div class="btn" id="btnRight" aria-label="Rotate Right">⟳</div>
+  <div class="joyWrap">
+    <div class="joy" id="joy">
+      <div class="joyLabel">ROTATE + THRUST</div>
+      <div class="knob" id="knob"></div>
+    </div>
   </div>
-  <div class="cluster" style="pointer-events:none;">
-    <div class="btn small" id="btnThrust" aria-label="Thrust">▲</div>
-    <div class="btn shoot" id="btnShoot" aria-label="Shoot">SHOOT</div>
+  <div class="shootWrap">
+    <div class="shootBtn" id="shootBtn">SHOOT</div>
   </div>
 </div>
 
-<div class="big" id="overlay">
+<div class="overlay" id="overlay">
   <div class="panel">
     <h1>Tap to Start</h1>
-    <p>Use the on-screen buttons (4 commands): rotate, thrust, shoot.</p>
-    <p>Clear the screen of shell noodles without getting pasta'd.</p>
-    <p style="opacity:.75;margin-top:10px;">Tip: rotate + thrust together for better control.</p>
+    <p>Left joystick: rotate (left/right) and thrust (push up). Right button: shoot.</p>
+    <p>Clear the screen of <b>shell noodles</b> without getting pasta'd.</p>
+    <p style="opacity:.75;">Tip: a little thrust goes a long way.</p>
   </div>
 </div>
 
 <script>
 (() => {
   const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d', { alpha: false });
+  const ctx = canvas.getContext('2d', { alpha:false });
 
+  const overlay = document.getElementById('overlay');
   const scoreEl = document.getElementById('score');
   const livesEl = document.getElementById('lives');
   const waveEl  = document.getElementById('wave');
-  const overlay = document.getElementById('overlay');
 
-  const btnLeft   = document.getElementById('btnLeft');
-  const btnRight  = document.getElementById('btnRight');
-  const btnThrust = document.getElementById('btnThrust');
-  const btnShoot  = document.getElementById('btnShoot');
+  const joy = document.getElementById('joy');
+  const knob = document.getElementById('knob');
+  const shootBtn = document.getElementById('shootBtn');
 
   function resize() {
     const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
@@ -180,45 +213,47 @@
     canvas.height = Math.floor(window.innerHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  window.addEventListener('resize', resize, { passive: true });
+  window.addEventListener('resize', resize, { passive:true });
   resize();
 
-  const TAU = Math.PI * 2;
-  const rand = (a, b) => a + Math.random() * (b - a);
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const wrap = (v, max) => (v < 0 ? v + max : (v >= max ? v - max : v));
-  const dist2 = (ax, ay, bx, by) => { const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; };
+  document.addEventListener('touchmove', (e) => e.preventDefault(), { passive:false });
 
+  const TAU = Math.PI * 2;
+  const rand = (a,b) => a + Math.random()*(b-a);
+  const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+  const wrap = (v, max) => (v < 0 ? v + max : (v >= max ? v - max : v));
+  const dist2 = (ax,ay,bx,by) => { const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; };
+
+  // Four commands internal
   const keys = { left:false, right:false, up:false, space:false };
 
-  let running = false;
-  let gameOver = false;
+  const joyState = { active:false, pid:null, cx:0, cy:0, radius:40, rot:0, thrust:0 };
 
-  const ship = { x:0, y:0, vx:0, vy:0, angle:-Math.PI/2, radius:12, invuln:0 };
+  const ship = { x:0,y:0, vx:0,vy:0, angle:-Math.PI/2, radius:12, invuln:0 };
   const bullets = [];
   const noodles = [];
   const particles = [];
 
-  let score = 0;
-  let lives = 3;
-  let wave = 1;
+  let score = 0, lives = 3, wave = 1;
   let cooldown = 0;
+  let running = false;
+  let gameOver = false;
 
-  function syncHUD() {
+  function syncHUD(){
     scoreEl.textContent = String(score);
     livesEl.textContent = String(lives);
     waveEl.textContent  = String(wave);
   }
 
-  function resetShip(center=true) {
-    ship.x = center ? window.innerWidth / 2 : ship.x;
-    ship.y = center ? window.innerHeight / 2 : ship.y;
-    ship.vx = 0; ship.vy = 0;
+  function resetShip(center=true){
+    ship.x = center ? window.innerWidth/2 : ship.x;
+    ship.y = center ? window.innerHeight/2 : ship.y;
+    ship.vx = ship.vy = 0;
     ship.angle = -Math.PI/2;
     ship.invuln = 2.0;
   }
 
-  function startNewGame() {
+  function startNewGame(){
     score = 0; lives = 3; wave = 1;
     bullets.length = 0; noodles.length = 0; particles.length = 0;
     cooldown = 0;
@@ -228,70 +263,67 @@
     syncHUD();
   }
 
-  function createNoodle(sizeTier, x, y) {
-    const baseR = sizeTier === 3 ? 46 : (sizeTier === 2 ? 28 : 16);
-    const r = baseR * rand(0.85, 1.15);
-    const speed = (sizeTier === 3 ? rand(18, 42) : sizeTier === 2 ? rand(30, 60) : rand(45, 85));
+  function createNoodle(tier, x, y){
+    const baseR = tier===3 ? 48 : (tier===2 ? 30 : 18);
+    const r = baseR * rand(0.85, 1.12);
+    const speed = tier===3 ? rand(18, 42) : (tier===2 ? rand(32, 64) : rand(48, 90));
     const ang = rand(0, TAU);
-    const spin = rand(-1.0, 1.0) * (sizeTier === 3 ? 0.6 : sizeTier === 2 ? 1.0 : 1.4);
-
-    return { x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, angle: rand(0, TAU), spin,
-      tier: sizeTier, r, wobble: rand(0, TAU), wobbleSpeed: rand(1.2, 2.3), hit: r * 0.85 };
+    return { x,y, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
+      angle:rand(0,TAU), spin: rand(-1,1) * (tier===3 ? 0.55 : tier===2 ? 0.95 : 1.35),
+      tier, r, hit:r*0.82, wobble:rand(0,TAU), wobbleSpeed:rand(1.1,2.2) };
   }
 
-  function spawnWave(w) {
-    const count = 3 + Math.min(8, w);
-    for (let i = 0; i < count; i++) {
-      let x, y;
-      for (let tries = 0; tries < 20; tries++) {
+  function spawnWave(w){
+    const count = 3 + Math.min(9, w);
+    for (let i=0;i<count;i++){
+      let x,y;
+      for (let tries=0; tries<25; tries++){
         x = rand(0, window.innerWidth);
         y = rand(0, window.innerHeight);
-        if (dist2(x, y, window.innerWidth/2, window.innerHeight/2) > (220*220)) break;
+        if (dist2(x,y, window.innerWidth/2, window.innerHeight/2) > 240*240) break;
       }
       noodles.push(createNoodle(3, x, y));
     }
   }
 
-  function splitNoodle(n) {
+  function splitNoodle(n){
     if (n.tier <= 1) return;
     const newTier = n.tier - 1;
-    const pieces = 2 + (Math.random() < 0.35 ? 1 : 0);
-    for (let i = 0; i < pieces; i++) {
-      const nn = createNoodle(newTier, wrap(n.x + rand(-10, 10), window.innerWidth), wrap(n.y + rand(-10, 10), window.innerHeight));
-      nn.vx += n.vx * 0.35; nn.vy += n.vy * 0.35;
+    const pieces = 2 + (Math.random()<0.35 ? 1 : 0);
+    for (let i=0;i<pieces;i++){
+      const nn = createNoodle(newTier, wrap(n.x+rand(-10,10), window.innerWidth), wrap(n.y+rand(-10,10), window.innerHeight));
+      nn.vx += n.vx*0.35; nn.vy += n.vy*0.35;
       noodles.push(nn);
     }
   }
 
-  function puff(x, y, count, speed, life, colorA, colorB) {
-    for (let i = 0; i < count; i++) {
-      const a = rand(0, TAU);
+  function puff(x,y,count,speed,life,colorA,colorB){
+    for (let i=0;i<count;i++){
+      const a = rand(0,TAU);
       const s = rand(speed*0.35, speed);
-      particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, t: 0, life: rand(life*0.6, life), r: rand(1.2, 2.8), colorA, colorB });
+      particles.push({ x,y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, t:0, life:rand(life*0.65,life), r:rand(1.2,3.0), colorA, colorB });
     }
   }
 
-  function drawStarfield() {
+  function drawStarfield(){
     const w = window.innerWidth, h = window.innerHeight;
     const t = performance.now() * 0.00002;
     ctx.fillStyle = '#0b0f18';
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0,0,w,h);
 
-    const isSmall = Math.min(w, h) < 500;
-    const layers = isSmall
-      ? [ { n: 40, s: 0.18, a: 0.65 }, { n: 18, s: 0.45, a: 0.9 } ]
-      : [ { n: 70, s: 0.15, a: 0.6 }, { n: 45, s: 0.30, a: 0.7 }, { n: 25, s: 0.55, a: 0.9 } ];
+    const layers = (Math.min(w,h) < 520)
+      ? [ { n: 38, s: 0.22, a: 0.7 }, { n: 14, s: 0.55, a: 0.92 } ]
+      : [ { n: 62, s: 0.18, a: 0.62 }, { n: 36, s: 0.34, a: 0.74 }, { n: 18, s: 0.58, a: 0.92 } ];
 
-    for (const L of layers) {
+    for (const L of layers){
       ctx.globalAlpha = L.a;
-      for (let i = 0; i < L.n; i++) {
+      for (let i=0;i<L.n;i++){
         const fx = (Math.sin(i*999 + t*TAU) * 0.5 + 0.5);
         const fy = (Math.cos(i*777 + t*TAU*1.3) * 0.5 + 0.5);
-        const x = fx * w;
-        const y = fy * h;
-        const r = 1 + (i % 3 === 0 ? 1 : 0);
+        const x = fx*w, y = fy*h;
+        const r = 1 + (i%3===0 ? 1 : 0);
         ctx.beginPath();
-        ctx.arc(x, y, r * L.s * 2.2, 0, TAU);
+        ctx.arc(x,y, r*L.s*2.2, 0, TAU);
         ctx.fillStyle = '#dbe6ff';
         ctx.fill();
       }
@@ -299,29 +331,29 @@
     ctx.globalAlpha = 1;
   }
 
-  function drawShip() {
+  function drawShip(){
     ctx.save();
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.angle);
 
-    const blink = ship.invuln > 0 ? (Math.floor(performance.now()/120) % 2 === 0) : true;
+    const blink = ship.invuln > 0 ? (Math.floor(performance.now()/120)%2===0) : true;
     ctx.globalAlpha = blink ? 1 : 0.25;
 
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#dbe6ff';
     ctx.beginPath();
-    ctx.moveTo(16, 0);
-    ctx.lineTo(-12, -10);
-    ctx.lineTo(-7, 0);
-    ctx.lineTo(-12, 10);
+    ctx.moveTo(16,0);
+    ctx.lineTo(-12,-10);
+    ctx.lineTo(-7,0);
+    ctx.lineTo(-12,10);
     ctx.closePath();
     ctx.stroke();
 
-    if (keys.up && !gameOver) {
+    if (keys.up && running && !gameOver){
       ctx.strokeStyle = '#9ad7ff';
       ctx.beginPath();
-      ctx.moveTo(-10, 0);
-      ctx.lineTo(-20 - rand(0, 6), 0);
+      ctx.moveTo(-10,0);
+      ctx.lineTo(-22 - rand(0,8), 0);
       ctx.stroke();
     }
 
@@ -329,266 +361,359 @@
     ctx.globalAlpha = 1;
   }
 
-  function drawBullet(b) {
+  function drawBullet(b){
     ctx.fillStyle = '#eaf1ff';
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 2.2, 0, TAU);
+    ctx.arc(b.x,b.y,2.2,0,TAU);
     ctx.fill();
   }
 
-  function drawNoodle(n) {
-    const base   = 'rgba(235, 212, 160, 0.95)';
-    const rim    = 'rgba(255, 240, 210, 0.85)';
-    const ridge  = 'rgba(195, 160, 105, 0.50)';
-    const shadow = 'rgba(0,0,0,0.25)';
+  function drawNoodle(n){
+    const r = n.r;
+    const wob = Math.sin(n.wobble) * (r * 0.06);
 
-    const wob = Math.sin(n.wobble) * (n.r * 0.07);
     ctx.save();
     ctx.translate(n.x, n.y);
     ctx.rotate(n.angle);
 
-    ctx.fillStyle = shadow;
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath();
-    ctx.ellipse(4, 4, n.r*0.92, n.r*0.65, 0, 0, TAU);
+    ctx.ellipse(6, 7, r*0.98, r*0.70, 0, 0, TAU);
     ctx.fill();
 
-    ctx.fillStyle = base;
+    // body gradient
+    const bodyGrad = ctx.createLinearGradient(-r, -r*0.6, r, r*0.8);
+    bodyGrad.addColorStop(0.0, 'rgba(255, 242, 210, 0.98)');
+    bodyGrad.addColorStop(0.45,'rgba(236, 205, 145, 0.98)');
+    bodyGrad.addColorStop(1.0, 'rgba(185, 140, 75, 0.98)');
+
+    ctx.fillStyle = bodyGrad;
     ctx.beginPath();
-    ctx.ellipse(0, 0, n.r*0.95, n.r*0.70, 0, 0, TAU);
+    ctx.ellipse(0, 0, r*0.98, r*0.72, 0, 0, TAU);
     ctx.fill();
 
+    // carve opening
+    ctx.save();
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
-    ctx.ellipse(wob*0.15, -wob*0.08, n.r*0.52, n.r*0.32, 0, 0, TAU);
+    ctx.ellipse(wob*0.18, -wob*0.10, r*0.58, r*0.36, 0, 0, TAU);
     ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
 
-    ctx.strokeStyle = rim;
-    ctx.lineWidth = Math.max(2, n.r * 0.08);
+    // cavity shading
+    const cavityGrad = ctx.createRadialGradient(-r*0.10, -r*0.06, r*0.05, r*0.22, r*0.12, r*0.70);
+    cavityGrad.addColorStop(0.0, 'rgba(85, 55, 25, 0.80)');
+    cavityGrad.addColorStop(0.55,'rgba(55, 32, 14, 0.78)');
+    cavityGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+    ctx.fillStyle = cavityGrad;
     ctx.beginPath();
-    ctx.ellipse(0, 0, n.r*0.92, n.r*0.67, 0, 0, TAU);
+    ctx.ellipse(wob*0.15, -wob*0.08, r*0.55, r*0.34, 0, 0, TAU);
+    ctx.fill();
+
+    // rim highlight + rim shadow
+    ctx.lineWidth = Math.max(2.2, r*0.085);
+    ctx.strokeStyle = 'rgba(255,255,255,0.42)';
+    ctx.beginPath();
+    ctx.ellipse(-r*0.02, -r*0.02, r*0.96, r*0.70, 0, 0, TAU);
     ctx.stroke();
 
-    ctx.strokeStyle = ridge;
-    ctx.lineWidth = Math.max(1.2, n.r * 0.045);
-    const ridges = Math.floor(6 + n.tier * 2);
-    for (let i = 0; i < ridges; i++) {
-      const t = (i / (ridges - 1)) * 2 - 1;
-      const x = t * n.r * 0.70;
-      const yTop = -Math.sqrt(Math.max(0, (n.r*0.62)**2 - (x*0.88)**2));
-      const yBot =  Math.sqrt(Math.max(0, (n.r*0.62)**2 - (x*0.88)**2));
+    ctx.lineWidth = Math.max(2.0, r*0.06);
+    ctx.strokeStyle = 'rgba(70,45,22,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(r*0.04, r*0.05, r*0.96, r*0.70, 0, 0, TAU);
+    ctx.stroke();
+
+    // ridges (highlight + shadow)
+    const ridges = Math.floor(7 + n.tier*2);
+    for (let i=0;i<ridges;i++){
+      const t = (i/(ridges-1))*2 - 1;
+      const x = t * r * 0.72;
+      const cap = (r*0.66);
+      const inside = Math.max(0, cap*cap - (x*0.90)*(x*0.90));
+      const yTop = -Math.sqrt(inside);
+      const yBot =  Math.sqrt(inside);
+
+      ctx.lineWidth = Math.max(1.2, r*0.042);
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
       ctx.beginPath();
-      ctx.moveTo(x, yTop + wob*0.10);
-      ctx.lineTo(x, yBot + wob*0.10);
+      ctx.moveTo(x - r*0.01, yTop + wob*0.10);
+      ctx.lineTo(x - r*0.01, yBot + wob*0.10);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(90,55,20,0.26)';
+      ctx.beginPath();
+      ctx.moveTo(x + r*0.015, yTop + wob*0.10);
+      ctx.lineTo(x + r*0.015, yBot + wob*0.10);
       ctx.stroke();
     }
 
-    ctx.strokeStyle = 'rgba(120, 85, 45, 0.28)';
-    ctx.lineWidth = 1.5;
+    // shine streak
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = Math.max(1.4, r*0.035);
     ctx.beginPath();
-    ctx.ellipse(0, 0, n.r*0.95, n.r*0.70, 0, 0, TAU);
+    ctx.ellipse(-r*0.18, -r*0.18, r*0.55, r*0.30, -0.3, 0.3, 2.2);
     ctx.stroke();
+    ctx.globalAlpha = 1;
 
     ctx.restore();
   }
 
-  function drawParticles() {
-    for (const p of particles) {
+  function drawParticles(){
+    for (const p of particles){
       const u = clamp(p.t / p.life, 0, 1);
       const a = 1 - u;
       ctx.globalAlpha = a;
-      ctx.fillStyle = (u < 0.5 ? p.colorA : p.colorB);
+      ctx.fillStyle = (u < 0.5) ? p.colorA : p.colorB;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * (1 + u*0.9), 0, TAU);
+      ctx.arc(p.x,p.y, p.r*(1+u*0.9), 0, TAU);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
 
-  function shoot() {
+  function shoot(){
     if (cooldown > 0) return;
-    cooldown = 0.18;
-
-    const speed = 520;
-    const bx = ship.x + Math.cos(ship.angle) * (ship.radius + 6);
-    const by = ship.y + Math.sin(ship.angle) * (ship.radius + 6);
-    bullets.push({ x: bx, y: by, vx: ship.vx + Math.cos(ship.angle) * speed, vy: ship.vy + Math.sin(ship.angle) * speed, life: 0.9 });
+    cooldown = 0.13;
+    const speed = 540;
+    const bx = ship.x + Math.cos(ship.angle)*(ship.radius+7);
+    const by = ship.y + Math.sin(ship.angle)*(ship.radius+7);
+    bullets.push({ x:bx, y:by, vx: ship.vx + Math.cos(ship.angle)*speed, vy: ship.vy + Math.sin(ship.angle)*speed, life:0.9 });
   }
 
-  function killShip() {
+  function killShip(){
     lives--;
     syncHUD();
-    puff(ship.x, ship.y, 26, 170, 0.9, 'rgba(255,210,170,0.95)', 'rgba(160,210,255,0.9)');
-    try { if (navigator.vibrate) navigator.vibrate(30); } catch {}
-
-    if (lives <= 0) {
+    puff(ship.x, ship.y, 28, 180, 0.9, 'rgba(255,230,200,0.95)', 'rgba(160,210,255,0.90)');
+    try { if (navigator.vibrate) navigator.vibrate(35); } catch {}
+    if (lives <= 0){
       gameOver = true;
       overlay.classList.remove('hidden');
       overlay.querySelector('h1').textContent = 'Game Over';
       overlay.querySelectorAll('p')[0].innerHTML = `Final score: <span class="kbd">${score}</span>`;
       overlay.querySelectorAll('p')[1].textContent = 'Tap anywhere to restart.';
-      overlay.querySelectorAll('p')[2].textContent = 'Same 4 commands. No extra buttons.';
+      overlay.querySelectorAll('p')[2].textContent = 'Joystick + shoot. Same game. Less rage.';
       overlay.querySelectorAll('p')[3].textContent = '';
       return;
     }
     resetShip(true);
   }
 
-  function setKey(e, isDown) {
-    if (e.code === 'ArrowLeft')  keys.left  = isDown;
-    if (e.code === 'ArrowRight') keys.right = isDown;
-    if (e.code === 'ArrowUp')    keys.up    = isDown;
-    if (e.code === 'Space')      keys.space = isDown;
-
-    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'ArrowUp' || e.code === 'Space') e.preventDefault();
+  function joyCenter(){
+    const r = joy.getBoundingClientRect();
+    joyState.cx = r.left + r.width/2;
+    joyState.cy = r.top + r.height/2;
+    joyState.radius = Math.min(r.width, r.height) * 0.42;
   }
-  window.addEventListener('keydown', (e) => setKey(e, true), { passive:false });
-  window.addEventListener('keyup',   (e) => setKey(e, false), { passive:false });
+  window.addEventListener('resize', joyCenter, { passive:true });
+  joyCenter();
 
-  function bindButton(el, keyName) {
-    const activePointers = new Set();
+  function setKnob(dx, dy){
+    const max = joyState.radius;
+    const d = Math.hypot(dx, dy);
+    const k = (d > max && d > 0) ? (max/d) : 1;
+    const x = dx * k, y = dy * k;
 
-    const down = (e) => {
-      e.preventDefault();
-      if (!running) {
-        running = true;
-        overlay.classList.add('hidden');
-        if (gameOver) startNewGame();
-      }
-      activePointers.add(e.pointerId);
-      keys[keyName] = true;
-      el.classList.add('active');
-      el.setPointerCapture?.(e.pointerId);
-    };
+    knob.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
 
-    const up = (e) => {
-      e.preventDefault();
-      activePointers.delete(e.pointerId);
-      if (activePointers.size === 0) {
-        keys[keyName] = false;
-        el.classList.remove('active');
-      }
-      el.releasePointerCapture?.(e.pointerId);
-    };
+    const nx = clamp(x / max, -1, 1);
+    const ny = clamp(y / max, -1, 1);
 
-    el.addEventListener('pointerdown', down, { passive:false });
-    el.addEventListener('pointerup', up, { passive:false });
-    el.addEventListener('pointercancel', up, { passive:false });
+    joyState.rot = nx;
+    joyState.thrust = clamp((-ny - 0.15) / 0.85, 0, 1);
   }
+  function joyReset(){
+    joyState.active = false;
+    joyState.pid = null;
+    joyState.rot = 0;
+    joyState.thrust = 0;
+    setKnob(0,0);
+  }
+  setKnob(0,0);
 
-  bindButton(btnLeft, 'left');
-  bindButton(btnRight, 'right');
-  bindButton(btnThrust, 'up');
-  bindButton(btnShoot, 'space');
-
-  window.addEventListener('pointerdown', (e) => {
-    if (e.target && e.target.classList && e.target.classList.contains('btn')) return;
-    if (!running) {
+  function joyDown(e){
+    e.preventDefault();
+    if (!running){
       running = true;
       overlay.classList.add('hidden');
       if (gameOver) startNewGame();
-    } else if (gameOver) {
+    }
+    joyCenter();
+    joyState.active = true;
+    joyState.pid = e.pointerId;
+    joy.setPointerCapture?.(e.pointerId);
+    setKnob(e.clientX - joyState.cx, e.clientY - joyState.cy);
+  }
+  function joyMove(e){
+    if (!joyState.active || e.pointerId !== joyState.pid) return;
+    e.preventDefault();
+    setKnob(e.clientX - joyState.cx, e.clientY - joyState.cy);
+  }
+  function joyUp(e){
+    if (e.pointerId !== joyState.pid) return;
+    e.preventDefault();
+    joy.releasePointerCapture?.(e.pointerId);
+    joyReset();
+  }
+
+  joy.addEventListener('pointerdown', joyDown, { passive:false });
+  window.addEventListener('pointermove', joyMove, { passive:false });
+  window.addEventListener('pointerup', joyUp, { passive:false });
+  window.addEventListener('pointercancel', joyUp, { passive:false });
+
+  let shootPid = null;
+  function shootDown(e){
+    e.preventDefault();
+    if (!running){
+      running = true;
+      overlay.classList.add('hidden');
+      if (gameOver) startNewGame();
+    }
+    shootPid = e.pointerId;
+    keys.space = true;
+    shootBtn.classList.add('active');
+    shootBtn.setPointerCapture?.(e.pointerId);
+  }
+  function shootUp(e){
+    if (shootPid !== e.pointerId) return;
+    e.preventDefault();
+    keys.space = false;
+    shootPid = null;
+    shootBtn.classList.remove('active');
+    shootBtn.releasePointerCapture?.(e.pointerId);
+  }
+  shootBtn.addEventListener('pointerdown', shootDown, { passive:false });
+  shootBtn.addEventListener('pointerup', shootUp, { passive:false });
+  shootBtn.addEventListener('pointercancel', shootUp, { passive:false });
+
+  window.addEventListener('pointerdown', (e) => {
+    if (e.target === shootBtn || e.target === joy) return;
+    if (!running){
+      running = true;
+      overlay.classList.add('hidden');
+    }
+    if (gameOver){
       startNewGame();
       overlay.classList.add('hidden');
       gameOver = false;
     }
   }, { passive:true });
 
-  document.addEventListener('touchmove', (e) => e.preventDefault(), { passive:false });
+  function setKey(e, isDown){
+    if (e.code === 'ArrowLeft')  keys.left  = isDown;
+    if (e.code === 'ArrowRight') keys.right = isDown;
+    if (e.code === 'ArrowUp')    keys.up    = isDown;
+    if (e.code === 'Space')      keys.space = isDown;
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'ArrowUp' || e.code === 'Space') e.preventDefault();
+  }
+  window.addEventListener('keydown', (e)=>setKey(e,true), { passive:false });
+  window.addEventListener('keyup',   (e)=>setKey(e,false), { passive:false });
 
   let last = performance.now();
-  function tick(now) {
-    const dt = Math.min(0.033, (now - last) / 1000);
+  function tick(now){
+    const dt = Math.min(0.033, (now-last)/1000);
     last = now;
 
     const w = window.innerWidth, h = window.innerHeight;
     drawStarfield();
 
-    if (running && !gameOver) {
-      const rotSpeed = 4.2;
-      if (keys.left)  ship.angle -= rotSpeed * dt;
-      if (keys.right) ship.angle += rotSpeed * dt;
+    // Joystick -> four commands (with deadzones)
+    const joyLeft  = joyState.rot < -0.18;
+    const joyRight = joyState.rot >  0.18;
+    const joyUp    = joyState.thrust > 0.02;
 
-      if (keys.up) {
-        const thrust = 220;
-        ship.vx += Math.cos(ship.angle) * thrust * dt;
-        ship.vy += Math.sin(ship.angle) * thrust * dt;
+    const left  = keys.left  || joyLeft;
+    const right = keys.right || joyRight;
+    const up    = keys.up    || joyUp;
+    const fire  = keys.space;
+
+    if (running && !gameOver){
+      const rotBase = 4.4;
+      const rotAmt = clamp(Math.abs(joyState.rot), 0, 1);
+      const rotSpeed = rotBase * (0.35 + 0.75*rotAmt);
+      if (left)  ship.angle -= rotSpeed * dt;
+      if (right) ship.angle += rotSpeed * dt;
+
+      if (up){
+        const thrust = 240 * (0.25 + 0.85*joyState.thrust);
+        ship.vx += Math.cos(ship.angle)*thrust*dt;
+        ship.vy += Math.sin(ship.angle)*thrust*dt;
       }
 
-      const damp = Math.pow(0.985, dt * 60);
+      const damp = Math.pow(0.985, dt*60);
       ship.vx *= damp; ship.vy *= damp;
 
-      const maxV = 320;
+      const maxV = 330;
       const sp = Math.hypot(ship.vx, ship.vy);
-      if (sp > maxV) { ship.vx = ship.vx / sp * maxV; ship.vy = ship.vy / sp * maxV; }
+      if (sp > maxV){ ship.vx = ship.vx/sp*maxV; ship.vy = ship.vy/sp*maxV; }
 
-      ship.x = wrap(ship.x + ship.vx * dt, w);
-      ship.y = wrap(ship.y + ship.vy * dt, h);
+      ship.x = wrap(ship.x + ship.vx*dt, w);
+      ship.y = wrap(ship.y + ship.vy*dt, h);
 
       ship.invuln = Math.max(0, ship.invuln - dt);
 
       cooldown = Math.max(0, cooldown - dt);
-      if (keys.space) shoot();
+      if (fire) shoot();
 
-      for (const n of noodles) {
+      for (const n of noodles){
         n.wobble += n.wobbleSpeed * dt;
         n.angle += n.spin * dt;
-        n.x = wrap(n.x + n.vx * dt, w);
-        n.y = wrap(n.y + n.vy * dt, h);
+        n.x = wrap(n.x + n.vx*dt, w);
+        n.y = wrap(n.y + n.vy*dt, h);
       }
 
-      for (let i = bullets.length - 1; i >= 0; i--) {
+      for (let i=bullets.length-1; i>=0; i--){
         const b = bullets[i];
         b.life -= dt;
-        b.x = wrap(b.x + b.vx * dt, w);
-        b.y = wrap(b.y + b.vy * dt, h);
-        if (b.life <= 0) bullets.splice(i, 1);
+        b.x = wrap(b.x + b.vx*dt, w);
+        b.y = wrap(b.y + b.vy*dt, h);
+        if (b.life <= 0) bullets.splice(i,1);
       }
 
-      for (let i = noodles.length - 1; i >= 0; i--) {
+      for (let i=noodles.length-1; i>=0; i--){
         const n = noodles[i];
-        const hr2 = n.hit * n.hit;
-
-        let hitIndex = -1;
-        for (let j = bullets.length - 1; j >= 0; j--) {
+        const hr2 = n.hit*n.hit;
+        let hit = -1;
+        for (let j=bullets.length-1; j>=0; j--){
           const b = bullets[j];
-          if (dist2(n.x, n.y, b.x, b.y) <= hr2) { hitIndex = j; break; }
+          if (dist2(n.x,n.y,b.x,b.y) <= hr2){ hit = j; break; }
         }
-        if (hitIndex !== -1) {
-          bullets.splice(hitIndex, 1);
-          noodles.splice(i, 1);
-          const pts = n.tier === 3 ? 20 : (n.tier === 2 ? 50 : 100);
+        if (hit !== -1){
+          bullets.splice(hit,1);
+          noodles.splice(i,1);
+          const pts = n.tier===3 ? 20 : (n.tier===2 ? 50 : 100);
           score += pts;
           syncHUD();
-          puff(n.x, n.y, 18, 140, 0.7, 'rgba(255,240,210,0.95)', 'rgba(190,160,110,0.75)');
+          puff(n.x,n.y, 18, 150, 0.75, 'rgba(255,245,220,0.95)', 'rgba(190,150,90,0.80)');
           splitNoodle(n);
         }
       }
 
-      if (ship.invuln <= 0) {
-        for (const n of noodles) {
+      if (ship.invuln <= 0){
+        for (const n of noodles){
           const rr = (ship.radius + n.hit) * 0.92;
-          if (dist2(ship.x, ship.y, n.x, n.y) <= rr*rr) { killShip(); break; }
+          if (dist2(ship.x,ship.y,n.x,n.y) <= rr*rr){ killShip(); break; }
         }
       }
 
-      if (!gameOver && noodles.length === 0) {
+      if (!gameOver && noodles.length === 0){
         wave++;
         syncHUD();
         resetShip(true);
         spawnWave(wave);
-        puff(w/2, h/2, 20, 120, 0.9, 'rgba(160,210,255,0.9)', 'rgba(255,240,210,0.85)');
+        puff(w/2,h/2, 22, 120, 0.9, 'rgba(160,210,255,0.9)', 'rgba(255,240,210,0.85)');
       }
     }
 
-    for (let i = particles.length - 1; i >= 0; i--) {
+    for (let i=particles.length-1; i>=0; i--){
       const p = particles[i];
       p.t += dt;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.vx *= Math.pow(0.97, dt * 60);
-      p.vy *= Math.pow(0.97, dt * 60);
-      if (p.t >= p.life) particles.splice(i, 1);
+      p.x += p.vx*dt;
+      p.y += p.vy*dt;
+      p.vx *= Math.pow(0.97, dt*60);
+      p.vy *= Math.pow(0.97, dt*60);
+      if (p.t >= p.life) particles.splice(i,1);
     }
 
     for (const n of noodles) drawNoodle(n);
@@ -597,9 +722,9 @@
     drawParticles();
 
     ctx.save();
-    const grd = ctx.createRadialGradient(w/2, h/2, Math.min(w,h)*0.15, w/2, h/2, Math.max(w,h)*0.7);
-    grd.addColorStop(0, 'rgba(0,0,0,0)');
-    grd.addColorStop(1, 'rgba(0,0,0,0.45)');
+    const grd = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)*0.16, w/2,h/2, Math.max(w,h)*0.72);
+    grd.addColorStop(0,'rgba(0,0,0,0)');
+    grd.addColorStop(1,'rgba(0,0,0,0.45)');
     ctx.fillStyle = grd;
     ctx.fillRect(0,0,w,h);
     ctx.restore();
@@ -611,6 +736,7 @@
   startNewGame();
   running = false;
   overlay.classList.remove('hidden');
+  syncHUD();
   requestAnimationFrame(tick);
 })();
 </script>
