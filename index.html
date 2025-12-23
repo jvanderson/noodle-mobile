@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Shell Noodles (Mobile)</title>
+  <style>
+    :root { color-scheme: dark; --pad: 14px; }
+    html, body { margin:0; height:100%; background:#0b0f18; overflow:hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    canvas { display:block; width:100vw; height:100vh; touch-action:none; }
+
+    .hud {
+      position: fixed; inset: 0; pointer-events:none;
+      display:flex; align-items:flex-start; justify-content:space-between;
+      padding: calc(var(--pad) + env(safe-area-inset-top)) calc(var(--pad) + env(safe-area-inset-right)) var(--pad) calc(var(--pad) + env(safe-area-inset-left));
+      color:#dbe6ff;
+      text-shadow: 0 1px 0 rgba(0,0,0,.6);
+      font-size:14px;
+      gap: 10px;
+    }
+    .box {
+      background: rgba(10,14,25,.55);
+      border: 1px solid rgba(140,170,255,.18);
+      border-radius: 12px;
+      padding: 9px 11px;
+      backdrop-filter: blur(6px);
+      max-width: 360px;
+    }
+    .title { font-weight:700; letter-spacing:.3px; margin:0 0 6px 0; }
+    .small { opacity:.85; line-height:1.35; }
+    .right { text-align:right; }
+
+    .big {
+      position: fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      pointer-events:none;
+      color:#eaf1ff;
+      text-shadow: 0 2px 0 rgba(0,0,0,.7);
+      padding: 16px;
+    }
+    .big .panel {
+      text-align:center;
+      padding:18px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(140,170,255,.18);
+      background: rgba(10,14,25,.60);
+      backdrop-filter: blur(8px);
+      max-width: 560px;
+      width: min(560px, 100%);
+    }
+    .big h1 { margin:0 0 8px 0; font-size: 22px; }
+    .big p { margin: 8px 0; opacity:.9; line-height: 1.35; }
+    .kbd { display:inline-block; padding: 1px 7px; border-radius: 7px; border:1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); font-weight:650; }
+    .hidden { display:none; }
+
+    .controls {
+      position: fixed; inset: 0;
+      pointer-events:none;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      padding:
+        12px calc(12px + env(safe-area-inset-right))
+        calc(12px + env(safe-area-inset-bottom))
+        calc(12px + env(safe-area-inset-left));
+      gap: 12px;
+    }
+    .cluster {
+      pointer-events:none;
+      display:flex;
+      gap: 10px;
+      align-items:flex-end;
+    }
+    .btn {
+      pointer-events:auto;
+      user-select:none;
+      -webkit-user-select:none;
+      -webkit-touch-callout:none;
+      touch-action:none;
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      border: 1px solid rgba(140,170,255,.25);
+      background: rgba(10,14,25,.55);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 22px rgba(0,0,0,.35);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#eaf1ff;
+      font-weight:800;
+      font-size: 18px;
+    }
+    .btn:active, .btn.active {
+      transform: translateY(1px) scale(0.98);
+      background: rgba(30,40,75,.55);
+      border-color: rgba(180,200,255,.45);
+    }
+    .btn.small {
+      width: 64px;
+      height: 64px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .btn.shoot {
+      width: 82px;
+      height: 82px;
+      border-radius: 24px;
+      font-size: 16px;
+      letter-spacing: .4px;
+    }
+
+    @media (max-width: 380px) {
+      .btn { width: 58px; height: 58px; border-radius: 16px; }
+      .btn.shoot { width: 76px; height: 76px; border-radius: 22px; }
+      .hud { font-size: 13px; }
+    }
+
+    @media (min-width: 900px) and (pointer:fine) {
+      .controls { display:none; }
+    }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <div class="box">
+    <div class="title">Shell Noodles (Mobile)</div>
+    <div class="small">
+      Touch buttons for 4 commands. Keyboard still works:<br/>
+      <span class="kbd">←</span>/<span class="kbd">→</span> rotate, <span class="kbd">↑</span> thrust, <span class="kbd">Space</span> shoot.
+    </div>
+  </div>
+  <div class="box right">
+    <div><b>Score:</b> <span id="score">0</span></div>
+    <div><b>Lives:</b> <span id="lives">3</span></div>
+    <div><b>Wave:</b> <span id="wave">1</span></div>
+  </div>
+</div>
+
+<div class="controls" aria-hidden="true">
+  <div class="cluster" style="pointer-events:none;">
+    <div class="btn" id="btnLeft"  aria-label="Rotate Left">⟲</div>
+    <div class="btn" id="btnRight" aria-label="Rotate Right">⟳</div>
+  </div>
+  <div class="cluster" style="pointer-events:none;">
+    <div class="btn small" id="btnThrust" aria-label="Thrust">▲</div>
+    <div class="btn shoot" id="btnShoot" aria-label="Shoot">SHOOT</div>
+  </div>
+</div>
+
+<div class="big" id="overlay">
+  <div class="panel">
+    <h1>Tap to Start</h1>
+    <p>Use the on-screen buttons (4 commands): rotate, thrust, shoot.</p>
+    <p>Clear the screen of shell noodles without getting pasta'd.</p>
+    <p style="opacity:.75;margin-top:10px;">Tip: rotate + thrust together for better control.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha: false });
+
+  const scoreEl = document.getElementById('score');
+  const livesEl = document.getElementById('lives');
+  const waveEl  = document.getElementById('wave');
+  const overlay = document.getElementById('overlay');
+
+  const btnLeft   = document.getElementById('btnLeft');
+  const btnRight  = document.getElementById('btnRight');
+  const btnThrust = document.getElementById('btnThrust');
+  const btnShoot  = document.getElementById('btnShoot');
+
+  function resize() {
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    canvas.width  = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize, { passive: true });
+  resize();
+
+  const TAU = Math.PI * 2;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const wrap = (v, max) => (v < 0 ? v + max : (v >= max ? v - max : v));
+  const dist2 = (ax, ay, bx, by) => { const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; };
+
+  const keys = { left:false, right:false, up:false, space:false };
+
+  let running = false;
+  let gameOver = false;
+
+  const ship = { x:0, y:0, vx:0, vy:0, angle:-Math.PI/2, radius:12, invuln:0 };
+  const bullets = [];
+  const noodles = [];
+  const particles = [];
+
+  let score = 0;
+  let lives = 3;
+  let wave = 1;
+  let cooldown = 0;
+
+  function syncHUD() {
+    scoreEl.textContent = String(score);
+    livesEl.textContent = String(lives);
+    waveEl.textContent  = String(wave);
+  }
+
+  function resetShip(center=true) {
+    ship.x = center ? window.innerWidth / 2 : ship.x;
+    ship.y = center ? window.innerHeight / 2 : ship.y;
+    ship.vx = 0; ship.vy = 0;
+    ship.angle = -Math.PI/2;
+    ship.invuln = 2.0;
+  }
+
+  function startNewGame() {
+    score = 0; lives = 3; wave = 1;
+    bullets.length = 0; noodles.length = 0; particles.length = 0;
+    cooldown = 0;
+    gameOver = false;
+    resetShip(true);
+    spawnWave(wave);
+    syncHUD();
+  }
+
+  function createNoodle(sizeTier, x, y) {
+    const baseR = sizeTier === 3 ? 46 : (sizeTier === 2 ? 28 : 16);
+    const r = baseR * rand(0.85, 1.15);
+    const speed = (sizeTier === 3 ? rand(18, 42) : sizeTier === 2 ? rand(30, 60) : rand(45, 85));
+    const ang = rand(0, TAU);
+    const spin = rand(-1.0, 1.0) * (sizeTier === 3 ? 0.6 : sizeTier === 2 ? 1.0 : 1.4);
+
+    return { x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, angle: rand(0, TAU), spin,
+      tier: sizeTier, r, wobble: rand(0, TAU), wobbleSpeed: rand(1.2, 2.3), hit: r * 0.85 };
+  }
+
+  function spawnWave(w) {
+    const count = 3 + Math.min(8, w);
+    for (let i = 0; i < count; i++) {
+      let x, y;
+      for (let tries = 0; tries < 20; tries++) {
+        x = rand(0, window.innerWidth);
+        y = rand(0, window.innerHeight);
+        if (dist2(x, y, window.innerWidth/2, window.innerHeight/2) > (220*220)) break;
+      }
+      noodles.push(createNoodle(3, x, y));
+    }
+  }
+
+  function splitNoodle(n) {
+    if (n.tier <= 1) return;
+    const newTier = n.tier - 1;
+    const pieces = 2 + (Math.random() < 0.35 ? 1 : 0);
+    for (let i = 0; i < pieces; i++) {
+      const nn = createNoodle(newTier, wrap(n.x + rand(-10, 10), window.innerWidth), wrap(n.y + rand(-10, 10), window.innerHeight));
+      nn.vx += n.vx * 0.35; nn.vy += n.vy * 0.35;
+      noodles.push(nn);
+    }
+  }
+
+  function puff(x, y, count, speed, life, colorA, colorB) {
+    for (let i = 0; i < count; i++) {
+      const a = rand(0, TAU);
+      const s = rand(speed*0.35, speed);
+      particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, t: 0, life: rand(life*0.6, life), r: rand(1.2, 2.8), colorA, colorB });
+    }
+  }
+
+  function drawStarfield() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const t = performance.now() * 0.00002;
+    ctx.fillStyle = '#0b0f18';
+    ctx.fillRect(0, 0, w, h);
+
+    const isSmall = Math.min(w, h) < 500;
+    const layers = isSmall
+      ? [ { n: 40, s: 0.18, a: 0.65 }, { n: 18, s: 0.45, a: 0.9 } ]
+      : [ { n: 70, s: 0.15, a: 0.6 }, { n: 45, s: 0.30, a: 0.7 }, { n: 25, s: 0.55, a: 0.9 } ];
+
+    for (const L of layers) {
+      ctx.globalAlpha = L.a;
+      for (let i = 0; i < L.n; i++) {
+        const fx = (Math.sin(i*999 + t*TAU) * 0.5 + 0.5);
+        const fy = (Math.cos(i*777 + t*TAU*1.3) * 0.5 + 0.5);
+        const x = fx * w;
+        const y = fy * h;
+        const r = 1 + (i % 3 === 0 ? 1 : 0);
+        ctx.beginPath();
+        ctx.arc(x, y, r * L.s * 2.2, 0, TAU);
+        ctx.fillStyle = '#dbe6ff';
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawShip() {
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.angle);
+
+    const blink = ship.invuln > 0 ? (Math.floor(performance.now()/120) % 2 === 0) : true;
+    ctx.globalAlpha = blink ? 1 : 0.25;
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#dbe6ff';
+    ctx.beginPath();
+    ctx.moveTo(16, 0);
+    ctx.lineTo(-12, -10);
+    ctx.lineTo(-7, 0);
+    ctx.lineTo(-12, 10);
+    ctx.closePath();
+    ctx.stroke();
+
+    if (keys.up && !gameOver) {
+      ctx.strokeStyle = '#9ad7ff';
+      ctx.beginPath();
+      ctx.moveTo(-10, 0);
+      ctx.lineTo(-20 - rand(0, 6), 0);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBullet(b) {
+    ctx.fillStyle = '#eaf1ff';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 2.2, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawNoodle(n) {
+    const base   = 'rgba(235, 212, 160, 0.95)';
+    const rim    = 'rgba(255, 240, 210, 0.85)';
+    const ridge  = 'rgba(195, 160, 105, 0.50)';
+    const shadow = 'rgba(0,0,0,0.25)';
+
+    const wob = Math.sin(n.wobble) * (n.r * 0.07);
+    ctx.save();
+    ctx.translate(n.x, n.y);
+    ctx.rotate(n.angle);
+
+    ctx.fillStyle = shadow;
+    ctx.beginPath();
+    ctx.ellipse(4, 4, n.r*0.92, n.r*0.65, 0, 0, TAU);
+    ctx.fill();
+
+    ctx.fillStyle = base;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, n.r*0.95, n.r*0.70, 0, 0, TAU);
+    ctx.fill();
+
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.ellipse(wob*0.15, -wob*0.08, n.r*0.52, n.r*0.32, 0, 0, TAU);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.strokeStyle = rim;
+    ctx.lineWidth = Math.max(2, n.r * 0.08);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, n.r*0.92, n.r*0.67, 0, 0, TAU);
+    ctx.stroke();
+
+    ctx.strokeStyle = ridge;
+    ctx.lineWidth = Math.max(1.2, n.r * 0.045);
+    const ridges = Math.floor(6 + n.tier * 2);
+    for (let i = 0; i < ridges; i++) {
+      const t = (i / (ridges - 1)) * 2 - 1;
+      const x = t * n.r * 0.70;
+      const yTop = -Math.sqrt(Math.max(0, (n.r*0.62)**2 - (x*0.88)**2));
+      const yBot =  Math.sqrt(Math.max(0, (n.r*0.62)**2 - (x*0.88)**2));
+      ctx.beginPath();
+      ctx.moveTo(x, yTop + wob*0.10);
+      ctx.lineTo(x, yBot + wob*0.10);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(120, 85, 45, 0.28)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, n.r*0.95, n.r*0.70, 0, 0, TAU);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    for (const p of particles) {
+      const u = clamp(p.t / p.life, 0, 1);
+      const a = 1 - u;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = (u < 0.5 ? p.colorA : p.colorB);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * (1 + u*0.9), 0, TAU);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function shoot() {
+    if (cooldown > 0) return;
+    cooldown = 0.18;
+
+    const speed = 520;
+    const bx = ship.x + Math.cos(ship.angle) * (ship.radius + 6);
+    const by = ship.y + Math.sin(ship.angle) * (ship.radius + 6);
+    bullets.push({ x: bx, y: by, vx: ship.vx + Math.cos(ship.angle) * speed, vy: ship.vy + Math.sin(ship.angle) * speed, life: 0.9 });
+  }
+
+  function killShip() {
+    lives--;
+    syncHUD();
+    puff(ship.x, ship.y, 26, 170, 0.9, 'rgba(255,210,170,0.95)', 'rgba(160,210,255,0.9)');
+    try { if (navigator.vibrate) navigator.vibrate(30); } catch {}
+
+    if (lives <= 0) {
+      gameOver = true;
+      overlay.classList.remove('hidden');
+      overlay.querySelector('h1').textContent = 'Game Over';
+      overlay.querySelectorAll('p')[0].innerHTML = `Final score: <span class="kbd">${score}</span>`;
+      overlay.querySelectorAll('p')[1].textContent = 'Tap anywhere to restart.';
+      overlay.querySelectorAll('p')[2].textContent = 'Same 4 commands. No extra buttons.';
+      overlay.querySelectorAll('p')[3].textContent = '';
+      return;
+    }
+    resetShip(true);
+  }
+
+  function setKey(e, isDown) {
+    if (e.code === 'ArrowLeft')  keys.left  = isDown;
+    if (e.code === 'ArrowRight') keys.right = isDown;
+    if (e.code === 'ArrowUp')    keys.up    = isDown;
+    if (e.code === 'Space')      keys.space = isDown;
+
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'ArrowUp' || e.code === 'Space') e.preventDefault();
+  }
+  window.addEventListener('keydown', (e) => setKey(e, true), { passive:false });
+  window.addEventListener('keyup',   (e) => setKey(e, false), { passive:false });
+
+  function bindButton(el, keyName) {
+    const activePointers = new Set();
+
+    const down = (e) => {
+      e.preventDefault();
+      if (!running) {
+        running = true;
+        overlay.classList.add('hidden');
+        if (gameOver) startNewGame();
+      }
+      activePointers.add(e.pointerId);
+      keys[keyName] = true;
+      el.classList.add('active');
+      el.setPointerCapture?.(e.pointerId);
+    };
+
+    const up = (e) => {
+      e.preventDefault();
+      activePointers.delete(e.pointerId);
+      if (activePointers.size === 0) {
+        keys[keyName] = false;
+        el.classList.remove('active');
+      }
+      el.releasePointerCapture?.(e.pointerId);
+    };
+
+    el.addEventListener('pointerdown', down, { passive:false });
+    el.addEventListener('pointerup', up, { passive:false });
+    el.addEventListener('pointercancel', up, { passive:false });
+  }
+
+  bindButton(btnLeft, 'left');
+  bindButton(btnRight, 'right');
+  bindButton(btnThrust, 'up');
+  bindButton(btnShoot, 'space');
+
+  window.addEventListener('pointerdown', (e) => {
+    if (e.target && e.target.classList && e.target.classList.contains('btn')) return;
+    if (!running) {
+      running = true;
+      overlay.classList.add('hidden');
+      if (gameOver) startNewGame();
+    } else if (gameOver) {
+      startNewGame();
+      overlay.classList.add('hidden');
+      gameOver = false;
+    }
+  }, { passive:true });
+
+  document.addEventListener('touchmove', (e) => e.preventDefault(), { passive:false });
+
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+
+    const w = window.innerWidth, h = window.innerHeight;
+    drawStarfield();
+
+    if (running && !gameOver) {
+      const rotSpeed = 4.2;
+      if (keys.left)  ship.angle -= rotSpeed * dt;
+      if (keys.right) ship.angle += rotSpeed * dt;
+
+      if (keys.up) {
+        const thrust = 220;
+        ship.vx += Math.cos(ship.angle) * thrust * dt;
+        ship.vy += Math.sin(ship.angle) * thrust * dt;
+      }
+
+      const damp = Math.pow(0.985, dt * 60);
+      ship.vx *= damp; ship.vy *= damp;
+
+      const maxV = 320;
+      const sp = Math.hypot(ship.vx, ship.vy);
+      if (sp > maxV) { ship.vx = ship.vx / sp * maxV; ship.vy = ship.vy / sp * maxV; }
+
+      ship.x = wrap(ship.x + ship.vx * dt, w);
+      ship.y = wrap(ship.y + ship.vy * dt, h);
+
+      ship.invuln = Math.max(0, ship.invuln - dt);
+
+      cooldown = Math.max(0, cooldown - dt);
+      if (keys.space) shoot();
+
+      for (const n of noodles) {
+        n.wobble += n.wobbleSpeed * dt;
+        n.angle += n.spin * dt;
+        n.x = wrap(n.x + n.vx * dt, w);
+        n.y = wrap(n.y + n.vy * dt, h);
+      }
+
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.life -= dt;
+        b.x = wrap(b.x + b.vx * dt, w);
+        b.y = wrap(b.y + b.vy * dt, h);
+        if (b.life <= 0) bullets.splice(i, 1);
+      }
+
+      for (let i = noodles.length - 1; i >= 0; i--) {
+        const n = noodles[i];
+        const hr2 = n.hit * n.hit;
+
+        let hitIndex = -1;
+        for (let j = bullets.length - 1; j >= 0; j--) {
+          const b = bullets[j];
+          if (dist2(n.x, n.y, b.x, b.y) <= hr2) { hitIndex = j; break; }
+        }
+        if (hitIndex !== -1) {
+          bullets.splice(hitIndex, 1);
+          noodles.splice(i, 1);
+          const pts = n.tier === 3 ? 20 : (n.tier === 2 ? 50 : 100);
+          score += pts;
+          syncHUD();
+          puff(n.x, n.y, 18, 140, 0.7, 'rgba(255,240,210,0.95)', 'rgba(190,160,110,0.75)');
+          splitNoodle(n);
+        }
+      }
+
+      if (ship.invuln <= 0) {
+        for (const n of noodles) {
+          const rr = (ship.radius + n.hit) * 0.92;
+          if (dist2(ship.x, ship.y, n.x, n.y) <= rr*rr) { killShip(); break; }
+        }
+      }
+
+      if (!gameOver && noodles.length === 0) {
+        wave++;
+        syncHUD();
+        resetShip(true);
+        spawnWave(wave);
+        puff(w/2, h/2, 20, 120, 0.9, 'rgba(160,210,255,0.9)', 'rgba(255,240,210,0.85)');
+      }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.t += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= Math.pow(0.97, dt * 60);
+      p.vy *= Math.pow(0.97, dt * 60);
+      if (p.t >= p.life) particles.splice(i, 1);
+    }
+
+    for (const n of noodles) drawNoodle(n);
+    for (const b of bullets) drawBullet(b);
+    drawShip();
+    drawParticles();
+
+    ctx.save();
+    const grd = ctx.createRadialGradient(w/2, h/2, Math.min(w,h)*0.15, w/2, h/2, Math.max(w,h)*0.7);
+    grd.addColorStop(0, 'rgba(0,0,0,0)');
+    grd.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0,0,w,h);
+    ctx.restore();
+
+    requestAnimationFrame(tick);
+  }
+
+  resetShip(true);
+  startNewGame();
+  running = false;
+  overlay.classList.remove('hidden');
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
