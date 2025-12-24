@@ -2,24 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
-  />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Pasta Shells (Asteroids)</title>
+  <title>Noodle!</title>
   <style>
     :root{
       --bg:#05070a;
       --fg:#e9eef7;
       --muted:#9fb0c7;
-      --btn:#111827cc;
-      --btn2:#0b1220cc;
-      --stroke:rgba(233,238,247,.9);
-      --stroke2:rgba(233,238,247,.5);
-      --good:#9affc8;
-      --bad:#ff8aa3;
+      --btn1:rgba(17,24,39,.88);
+      --btn2:rgba(11,18,32,.88);
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-right: env(safe-area-inset-right, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -28,152 +22,142 @@
 
     html, body {
       margin: 0;
+      padding: 0;
       height: 100%;
       background: var(--bg);
       color: var(--fg);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      overscroll-behavior: none;
-      touch-action: none; /* avoid page scroll/zoom while playing */
+      overflow: hidden;               /* hard-stop scrolling */
+      position: fixed; inset: 0;      /* prevents iOS rubber-band + layout shifts */
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
 
-    #wrap {
+    /* Fullscreen canvas */
+    #game {
       position: fixed;
       inset: 0;
-      padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px 6px;
-      user-select: none;
-    }
-
-    .hud {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      font-variant-numeric: tabular-nums;
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    .hud b { color: var(--fg); font-weight: 700; }
-
-    .pill {
-      padding: 6px 10px;
-      border: 1px solid rgba(233,238,247,.18);
-      border-radius: 999px;
-      background: rgba(17,24,39,.35);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    }
-
-    .brand {
-      display:flex;
-      align-items:center;
-      gap:10px;
-      color: var(--fg);
-      font-weight: 750;
-      letter-spacing: .2px;
-    }
-    .brand small{
-      color: var(--muted);
-      font-weight: 600;
-      letter-spacing: .2px;
-    }
-
-    canvas {
       width: 100%;
       height: 100%;
       display: block;
-      background: radial-gradient(800px 500px at 60% 40%, rgba(60,120,255,.08), transparent 60%),
-                  radial-gradient(600px 450px at 30% 70%, rgba(0,255,180,.06), transparent 60%),
-                  #05070a;
-      border-top: 1px solid rgba(233,238,247,.06);
-      border-bottom: 1px solid rgba(233,238,247,.06);
+      background:
+        radial-gradient(800px 500px at 60% 40%, rgba(60,120,255,.08), transparent 60%),
+        radial-gradient(600px 450px at 30% 70%, rgba(0,255,180,.06), transparent 60%),
+        #05070a;
     }
+
+    /* HUD */
+    #hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) 10px calc(12px + var(--safe-left));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      pointer-events: none; /* HUD doesn't steal touches */
+    }
+    #brand {
+      font-weight: 850;
+      letter-spacing: .2px;
+      pointer-events: none;
+    }
+    #hud .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      pointer-events: none;
+      font-size: 13px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .pill {
+      pointer-events: none;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(233,238,247,.18);
+      background: rgba(17,24,39,.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .pill b { color: var(--fg); }
 
     /* Controls */
-    footer {
-      padding: 10px 12px calc(12px + var(--safe-bottom));
-      user-select: none;
-    }
-
-    .controls {
+    #controls {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 10px calc(12px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(12px + var(--safe-left));
       display: grid;
       grid-template-columns: 1fr 1fr 1fr 1.2fr;
       gap: 10px;
-      align-items: stretch;
+      background: linear-gradient(180deg, rgba(5,7,10,0), rgba(5,7,10,.55));
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
     }
 
     .btn {
       -webkit-tap-highlight-color: transparent;
       border: 1px solid rgba(233,238,247,.16);
-      background: linear-gradient(180deg, var(--btn), var(--btn2));
+      background: linear-gradient(180deg, var(--btn1), var(--btn2));
       color: var(--fg);
       border-radius: 16px;
       padding: 14px 10px;
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing: .2px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       min-height: 56px;
       touch-action: none;
-      cursor: pointer;
     }
 
-    .btn:active, .btn.active {
+    .btn .hint{
+      font-size: 12px;
+      font-weight: 750;
+      color: var(--muted);
+    }
+
+    .btn.active, .btn:active {
       transform: translateY(1px);
       border-color: rgba(233,238,247,.28);
       box-shadow: 0 0 0 3px rgba(120,180,255,.12) inset;
     }
 
-    .btn .hint {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      letter-spacing: .1px;
-    }
-
-    .btn.shoot {
-      border-color: rgba(233,238,247,.22);
-    }
-
-    .btn.shoot:active, .btn.shoot.active {
+    .btn.shoot.active, .btn.shoot:active {
       box-shadow: 0 0 0 3px rgba(255,190,120,.12) inset;
     }
 
-    .overlay {
-      position: absolute;
+    /* Overlay (start/pause/game over) */
+    #overlay {
+      position: fixed;
       inset: 0;
       display: grid;
       place-items: center;
-      pointer-events: none;
+      padding: calc(16px + var(--safe-top)) calc(14px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(14px + var(--safe-left));
     }
+    #overlay.hidden { display: none; }
 
     .card {
-      pointer-events: auto;
-      max-width: 520px;
       width: min(520px, calc(100vw - 28px));
       border: 1px solid rgba(233,238,247,.18);
       border-radius: 22px;
       background: rgba(10,14,22,.72);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       padding: 18px 18px 16px;
       box-shadow: 0 18px 60px rgba(0,0,0,.5);
-      text-align: left;
     }
     .card h1 {
-      margin: 0 0 6px;
-      font-size: 20px;
+      margin: 0 0 8px;
+      font-size: 22px;
       letter-spacing: .2px;
     }
     .card p {
@@ -182,24 +166,18 @@
       line-height: 1.35;
       font-size: 14px;
     }
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
     .card button {
-      pointer-events: auto;
       border: 1px solid rgba(233,238,247,.2);
       background: rgba(233,238,247,.08);
       color: var(--fg);
       border-radius: 14px;
       padding: 10px 12px;
-      font-weight: 800;
-      cursor: pointer;
+      font-weight: 850;
+      -webkit-tap-highlight-color: transparent;
     }
-    .card button:active {
-      transform: translateY(1px);
-    }
+    .card button:active { transform: translateY(1px); }
+
     .tiny {
       margin-top: 10px;
       font-size: 12px;
@@ -215,138 +193,157 @@
       color: rgba(233,238,247,.8);
     }
 
-    /* Keep controls usable on narrow screens */
     @media (max-width: 420px){
-      .controls { gap: 8px; }
+      #controls { gap: 8px; }
       .btn { border-radius: 14px; min-height: 54px; padding: 12px 8px; }
     }
   </style>
 </head>
 <body>
-  <div id="wrap">
-    <header>
-      <div class="brand">
-        Pasta Shells <small>(Asteroids)</small>
-      </div>
-      <div class="hud">
-        <span class="pill">Score: <b id="score">0</b></span>
-        <span class="pill">Lives: <b id="lives">3</b></span>
-        <span class="pill">Wave: <b id="wave">1</b></span>
-      </div>
-    </header>
+  <canvas id="game"></canvas>
 
-    <div style="position:relative;">
-      <canvas id="c"></canvas>
+  <div id="hud">
+    <div id="brand">Noodle!</div>
+    <div class="stats">
+      <span class="pill">Score: <b id="score">0</b></span>
+      <span class="pill">Lives: <b id="lives">3</b></span>
+      <span class="pill">Wave: <b id="wave">1</b></span>
+    </div>
+  </div>
 
-      <div class="overlay" id="overlay">
-        <div class="card">
-          <h1 id="title">Pasta Shells</h1>
-          <p id="desc">
-            Dodge the pasta shells. Shoot them into smaller shells. Clear the wave.
-            Mobile controls are below; keyboard also works on desktop.
-          </p>
-          <div class="row">
-            <button id="startBtn">Start</button>
-            <button id="resumeBtn" style="display:none;">Resume</button>
-            <button id="restartBtn" style="display:none;">Restart</button>
-          </div>
-          <div class="tiny">
-            Controls: <span class="kbd">◀</span>/<span class="kbd">▶</span> rotate,
-            <span class="kbd">▲</span> thrust, <span class="kbd">Space</span> shoot,
-            <span class="kbd">P</span> pause.
-          </div>
-        </div>
+  <div id="controls" role="group" aria-label="Game controls">
+    <button class="btn" id="leftBtn" aria-label="Rotate Left">◀ <span class="hint">Left</span></button>
+    <button class="btn" id="rightBtn" aria-label="Rotate Right">▶ <span class="hint">Right</span></button>
+    <button class="btn" id="thrustBtn" aria-label="Thrust">▲ <span class="hint">Thrust</span></button>
+    <button class="btn shoot" id="shootBtn" aria-label="Shoot">● <span class="hint">Shoot</span></button>
+  </div>
+
+  <div id="overlay">
+    <div class="card">
+      <h1 id="ovTitle">Noodle!</h1>
+      <p id="ovDesc">Tap <b>Start</b>. On iPhone, use the four buttons at the bottom.</p>
+      <div class="row">
+        <button id="startBtn">Start</button>
+        <button id="resumeBtn" style="display:none;">Resume</button>
+        <button id="restartBtn" style="display:none;">Restart</button>
+      </div>
+      <div class="tiny">
+        Desktop keys: <span class="kbd">◀</span>/<span class="kbd">▶</span> rotate,
+        <span class="kbd">▲</span> thrust, <span class="kbd">Space</span> shoot,
+        <span class="kbd">P</span> pause.
       </div>
     </div>
-
-    <footer>
-      <div class="controls">
-        <button class="btn" id="leftBtn" aria-label="Rotate Left">
-          ◀ <span class="hint">Left</span>
-        </button>
-        <button class="btn" id="rightBtn" aria-label="Rotate Right">
-          ▶ <span class="hint">Right</span>
-        </button>
-        <button class="btn" id="thrustBtn" aria-label="Thrust">
-          ▲ <span class="hint">Thrust</span>
-        </button>
-        <button class="btn shoot" id="shootBtn" aria-label="Shoot">
-          ● <span class="hint">Shoot</span>
-        </button>
-      </div>
-    </footer>
   </div>
 
 <script>
 (() => {
-  // ---------- Canvas / DPR ----------
-  const canvas = document.getElementById('c');
+  // Hard-prevent scroll / rubber-band on iOS.
+  // This is what keeps the controls from "drifting" off-screen on Safari.
+  document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('touchstart', (e) => {
+    // prevent double-tap zoom behaviors
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d', { alpha: false });
-  let W = 0, H = 0, DPR = 1;
 
-  function resize() {
-    const rect = canvas.getBoundingClientRect();
-    DPR = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
-    W = Math.max(320, Math.floor(rect.width));
-    H = Math.max(320, Math.floor(rect.height));
-    canvas.width  = Math.floor(W * DPR);
-    canvas.height = Math.floor(H * DPR);
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  }
-  window.addEventListener('resize', resize, { passive: true });
-  resize();
+  const hudEl = document.getElementById('hud');
+  const controlsEl = document.getElementById('controls');
 
-  // Prevent iOS Safari gestures that can interfere.
-  document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
-  document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
-  document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
-
-  // ---------- UI ----------
   const scoreEl = document.getElementById('score');
   const livesEl = document.getElementById('lives');
   const waveEl  = document.getElementById('wave');
 
   const overlay = document.getElementById('overlay');
-  const titleEl = document.getElementById('title');
-  const descEl  = document.getElementById('desc');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovDesc  = document.getElementById('ovDesc');
   const startBtn = document.getElementById('startBtn');
   const resumeBtn = document.getElementById('resumeBtn');
   const restartBtn = document.getElementById('restartBtn');
 
-  // ---------- Input state ----------
-  const input = { left:false, right:false, thrust:false, shoot:false, paused:false };
-  const leftBtn = document.getElementById('leftBtn');
-  const rightBtn = document.getElementById('rightBtn');
-  const thrustBtn = document.getElementById('thrustBtn');
-  const shootBtn = document.getElementById('shootBtn');
+  const TAU = Math.PI * 2;
+  const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+  const rand = (a,b)=>a+Math.random()*(b-a);
 
-  function bindHoldButton(btn, onDown, onUp){
-    const setActive = (v) => btn.classList.toggle('active', v);
+  // Dynamic canvas sizing + safe play area (keeps action out from under HUD/controls)
+  let DPR = 1, W = 0, H = 0;
+  let bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+
+  function computeBounds(){
+    const hudH = hudEl.getBoundingClientRect().height || 0;
+    const ctlH = controlsEl.getBoundingClientRect().height || 0;
+    bounds.minX = 0;
+    bounds.maxX = W;
+    bounds.minY = hudH;           // keep gameplay below HUD
+    bounds.maxY = H - ctlH;       // keep gameplay above controls
+    // ensure playable region is reasonable
+    if (bounds.maxY - bounds.minY < 240){
+      bounds.minY = 0;
+      bounds.maxY = H;
+    }
+  }
+
+  function resize(){
+    // Use visualViewport if available (best on iOS Safari when bars show/hide)
+    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+    DPR = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+    W = Math.max(320, Math.floor(vw));
+    H = Math.max(320, Math.floor(vh));
+
+    canvas.width  = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    computeBounds();
+    initStars();
+  }
+
+  window.addEventListener('resize', resize, { passive: true });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', resize, { passive: true });
+  resize();
+
+  // Input
+  const input = { left:false, right:false, thrust:false, shoot:false, paused:false };
+
+  function setBtnActive(btn, v){ btn.classList.toggle('active', v); }
+
+  function bindButton(id, key){
+    const btn = document.getElementById(id);
 
     const down = (e) => {
       e.preventDefault();
-      onDown();
-      setActive(true);
+      input[key] = true;
+      setBtnActive(btn, true);
     };
     const up = (e) => {
       e.preventDefault();
-      onUp();
-      setActive(false);
+      input[key] = false;
+      setBtnActive(btn, false);
     };
 
-    // Pointer events unify touch/mouse.
-    btn.addEventListener('pointerdown', down, { passive:false });
-    btn.addEventListener('pointerup', up, { passive:false });
-    btn.addEventListener('pointercancel', up, { passive:false });
-    btn.addEventListener('pointerleave', (e) => { if (e.buttons === 0) up(e); }, { passive:false });
+    // Touch events are the most reliable on iOS
+    btn.addEventListener('touchstart', down, { passive: false });
+    btn.addEventListener('touchend', up, { passive: false });
+    btn.addEventListener('touchcancel', up, { passive: false });
+
+    // Pointer events (desktop + newer iOS)
+    btn.addEventListener('pointerdown', down, { passive: false });
+    btn.addEventListener('pointerup', up, { passive: false });
+    btn.addEventListener('pointercancel', up, { passive: false });
+    btn.addEventListener('pointerleave', (e) => { if (e.buttons === 0) up(e); }, { passive: false });
   }
 
-  bindHoldButton(leftBtn,  () => input.left = true,  () => input.left = false);
-  bindHoldButton(rightBtn, () => input.right = true, () => input.right = false);
-  bindHoldButton(thrustBtn,() => input.thrust = true,() => input.thrust = false);
-  bindHoldButton(shootBtn, () => input.shoot = true, () => input.shoot = false);
+  bindButton('leftBtn', 'left');
+  bindButton('rightBtn', 'right');
+  bindButton('thrustBtn', 'thrust');
+  bindButton('shootBtn', 'shoot');
 
-  // Keyboard (desktop)
+  // Keyboard for desktop
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
     if (e.code === 'ArrowLeft')  input.left = true;
@@ -354,78 +351,70 @@
     if (e.code === 'ArrowUp')    input.thrust = true;
     if (e.code === 'Space')      input.shoot = true;
     if (e.code === 'KeyP')       togglePause();
-  }, { passive:false });
+  }, { passive: false });
 
   window.addEventListener('keyup', (e) => {
     if (e.code === 'ArrowLeft')  input.left = false;
     if (e.code === 'ArrowRight') input.right = false;
     if (e.code === 'ArrowUp')    input.thrust = false;
     if (e.code === 'Space')      input.shoot = false;
-  }, { passive:true });
+  }, { passive: true });
 
-  // ---------- Math helpers ----------
-  const TAU = Math.PI * 2;
-  const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
-  const rand = (a,b)=>a+Math.random()*(b-a);
-
+  // Helpers
   function wrap(obj){
-    if (obj.x < -obj.r) obj.x = W + obj.r;
-    else if (obj.x > W + obj.r) obj.x = -obj.r;
-    if (obj.y < -obj.r) obj.y = H + obj.r;
-    else if (obj.y > H + obj.r) obj.y = -obj.r;
+    const r = obj.r || 0;
+    if (obj.x < bounds.minX - r) obj.x = bounds.maxX + r;
+    else if (obj.x > bounds.maxX + r) obj.x = bounds.minX - r;
+
+    if (obj.y < bounds.minY - r) obj.y = bounds.maxY + r;
+    else if (obj.y > bounds.maxY + r) obj.y = bounds.minY - r;
   }
 
-  // ---------- Game objects ----------
-  const state = {
-    running:false,
-    over:false,
-    wave:1,
-    score:0,
-    lives:3,
-    invuln:0,
-    bullets:[],
-    shells:[],
-    particles:[],
-    stars:[],
-    lastTime:0,
-    shootCooldown:0
-  };
-
-  const ship = {
-    x: W/2, y: H/2,
-    vx: 0, vy: 0,
-    a: -Math.PI/2,
-    r: 12,
-    alive:true
-  };
-
-  // ---------- Starfield ----------
+  // Stars
+  const stars = [];
   function initStars(){
-    state.stars = [];
-    const n = Math.floor((W*H)/26000);
+    stars.length = 0;
+    const area = W * H;
+    const n = Math.floor(area / 26000);
     for(let i=0;i<n;i++){
-      state.stars.push({
+      stars.push({
         x: Math.random()*W,
         y: Math.random()*H,
-        s: rand(0.5,1.8),
-        a: rand(0.12,0.9)
+        s: rand(0.5, 1.8),
+        a: rand(0.12, 0.9)
       });
     }
   }
-  initStars();
 
-  // ---------- Pasta shell (conchiglie) drawing ----------
+  // Game state
+  const state = {
+    running: false,
+    over: false,
+    wave: 1,
+    score: 0,
+    lives: 3,
+    invuln: 0,
+    shootCooldown: 0,
+    bullets: [],
+    shells: [],
+    particles: [],
+    lastTime: 0
+  };
+
+  const ship = { x: 0, y: 0, vx: 0, vy: 0, a: -Math.PI/2, r: 12, alive: true };
+
+  // Pasta shell line drawing (conchiglie-style)
   function drawPastaShell(x, y, r, rot){
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rot);
 
-    ctx.lineWidth = Math.max(1, r * 0.08);
-    ctx.strokeStyle = 'rgba(233,238,247,0.90)';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     // Outer rim
+    ctx.strokeStyle = 'rgba(233,238,247,0.90)';
+    ctx.lineWidth = Math.max(1, r * 0.08);
     ctx.beginPath();
     const steps = 48;
     for(let i=0;i<=steps;i++){
@@ -464,7 +453,6 @@
       const y0 = -r*0.05 - (1 - Math.abs(u))*r*0.05;
       const x1 = u * r * 0.78;
       const y1 = r*0.55;
-
       const cx = u * r * 0.62 + Math.sin(u*2.6)*r*0.08;
       const cy = r*0.18;
 
@@ -485,34 +473,46 @@
     ctx.restore();
   }
 
-  function shellRadiusForCollision(r){ return r * 0.92; }
+  function shellCollisionRadius(r){ return r * 0.92; }
 
-  // ---------- Spawning ----------
+  // Effects
+  function boom(x, y, n, baseSpeed){
+    for(let i=0;i<n;i++){
+      const a = rand(0, TAU);
+      const s = baseSpeed * rand(0.4, 1.0);
+      state.particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life: rand(0.35,0.9), t: 0 });
+    }
+  }
+
+  // Game flow
   function resetShip(){
-    ship.x = W/2;
-    ship.y = H/2;
+    ship.x = (bounds.minX + bounds.maxX) / 2;
+    ship.y = (bounds.minY + bounds.maxY) / 2;
     ship.vx = 0; ship.vy = 0;
     ship.a = -Math.PI/2;
+    ship.r = 12;
     ship.alive = true;
     state.invuln = 2.0;
   }
 
-  function spawnWave(wave){
-    state.shells = [];
-    state.bullets = [];
-    state.particles = [];
+  function spawnWave(w){
+    state.shells.length = 0;
+    state.bullets.length = 0;
+    state.particles.length = 0;
     resetShip();
 
-    const count = Math.min(4 + wave, 10);
+    const count = Math.min(4 + w, 10);
+    const playW = bounds.maxX - bounds.minX;
+    const playH = bounds.maxY - bounds.minY;
     for(let i=0;i<count;i++){
-      let x,y;
-      for(let tries=0; tries<40; tries++){
-        x = Math.random()*W;
-        y = Math.random()*H;
-        if (Math.hypot(x - ship.x, y - ship.y) > Math.min(W,H)*0.25) break;
+      let x, y;
+      for(let tries=0; tries<60; tries++){
+        x = bounds.minX + Math.random()*playW;
+        y = bounds.minY + Math.random()*playH;
+        if (Math.hypot(x-ship.x, y-ship.y) > Math.min(playW,playH)*0.25) break;
       }
-      const size = rand(28, 46) * (1 + Math.min(0.6, wave*0.03));
-      const speed = rand(18, 40) + wave*2;
+      const size = rand(28, 46) * (1 + Math.min(0.6, w*0.03));
+      const speed = rand(18, 40) + w*2;
       const ang = rand(0, TAU);
       state.shells.push({
         x, y,
@@ -526,22 +526,6 @@
     }
   }
 
-  // ---------- Particles ----------
-  function boom(x,y, n, baseSpeed){
-    for(let i=0;i<n;i++){
-      const a = rand(0, TAU);
-      const s = baseSpeed * rand(0.4, 1.0);
-      state.particles.push({
-        x, y,
-        vx: Math.cos(a)*s,
-        vy: Math.sin(a)*s,
-        life: rand(0.35, 0.9),
-        t: 0
-      });
-    }
-  }
-
-  // ---------- Game logic ----------
   function shoot(){
     if (state.shootCooldown > 0) return;
     state.shootCooldown = 0.18;
@@ -549,7 +533,6 @@
     const speed = 520;
     const bx = ship.x + Math.cos(ship.a)*ship.r*1.2;
     const by = ship.y + Math.sin(ship.a)*ship.r*1.2;
-
     state.bullets.push({
       x: bx, y: by,
       vx: ship.vx + Math.cos(ship.a)*speed,
@@ -557,23 +540,6 @@
       life: 0.9,
       r: 2.2
     });
-  }
-
-  function killShip(){
-    if (state.invuln > 0) return;
-    state.lives -= 1;
-    livesEl.textContent = state.lives;
-    boom(ship.x, ship.y, 26, 160);
-
-    if (state.lives <= 0){
-      ship.alive = false;
-      state.over = true;
-      state.running = false;
-      showOverlay('Game Over', `Final score: <b>${state.score}</b>. Want another round?`, true);
-      return;
-    }
-
-    resetShip();
   }
 
   function splitShell(s){
@@ -604,7 +570,34 @@
     }
   }
 
-  // ---------- Rendering ----------
+  function killShip(){
+    if (state.invuln > 0) return;
+    state.lives -= 1;
+    livesEl.textContent = state.lives;
+    boom(ship.x, ship.y, 26, 160);
+
+    if (state.lives <= 0){
+      ship.alive = false;
+      state.over = true;
+      state.running = false;
+      showOverlay('Game Over', `Final score: <b>${state.score}</b>.`, true, false);
+      return;
+    }
+    resetShip();
+  }
+
+  // Rendering
+  function drawStars(){
+    ctx.save();
+    for(const s of stars){
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = 'rgba(233,238,247,0.85)';
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
   function drawShip(){
     if (!ship.alive) return;
     if (state.invuln > 0 && Math.floor(state.invuln*10)%2 === 0) return;
@@ -649,19 +642,13 @@
     ctx.restore();
   }
 
-  function drawShells(){
-    for(const s of state.shells){
-      drawPastaShell(s.x, s.y, s.r, s.rot);
-    }
-  }
-
   function drawParticles(dt){
     ctx.save();
     ctx.strokeStyle = 'rgba(233,238,247,0.55)';
     ctx.lineWidth = 1.5;
     for(const p of state.particles){
       const a = 1 - (p.t / p.life);
-      ctx.globalAlpha = Math.max(0, Math.min(1, a));
+      ctx.globalAlpha = clamp(a, 0, 1);
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
       ctx.lineTo(p.x - p.vx*dt*0.06, p.y - p.vy*dt*0.06);
@@ -671,36 +658,85 @@
     ctx.globalAlpha = 1;
   }
 
-  function drawStars(){
-    ctx.save();
-    for(const s of state.stars){
-      ctx.globalAlpha = s.a;
-      ctx.fillStyle = 'rgba(233,238,247,0.85)';
-      ctx.fillRect(s.x, s.y, s.s, s.s);
-    }
-    ctx.restore();
-    ctx.globalAlpha = 1;
-  }
-
   function clear(){
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0,0,W,H);
     drawStars();
+
+    // Playfield guides (subtle)
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.strokeStyle = 'rgba(233,238,247,0.30)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(bounds.minX+0.5, bounds.minY+0.5, (bounds.maxX-bounds.minX)-1, (bounds.maxY-bounds.minY)-1);
+    ctx.stroke();
+    ctx.restore();
   }
 
-  // ---------- Update loop ----------
-  function step(t){
-    requestAnimationFrame(step);
-    const time = t/1000;
-    let dt = time - (state.lastTime || time);
-    state.lastTime = time;
-    dt = Math.max(0, Math.min(0.033, dt));
+  // Overlay helpers
+  function showOverlay(title, descHTML, showRestart, showResume){
+    ovTitle.textContent = title;
+    ovDesc.innerHTML = descHTML;
+    overlay.classList.remove('hidden');
+    startBtn.style.display = (title === 'Noodle!') ? '' : 'none';
+    restartBtn.style.display = showRestart ? '' : 'none';
+    resumeBtn.style.display = showResume ? '' : 'none';
+  }
+  function hideOverlay(){ overlay.classList.add('hidden'); }
 
-    if (!state.running || input.paused) {
+  function startGame(){
+    // Recompute bounds one more time (Safari can finalize bar sizes after first tap)
+    resize();
+
+    state.running = true;
+    state.over = false;
+    input.paused = false;
+    state.wave = 1;
+    state.score = 0;
+    state.lives = 3;
+    scoreEl.textContent = '0';
+    livesEl.textContent = '3';
+    waveEl.textContent = '1';
+    spawnWave(1);
+    hideOverlay();
+  }
+
+  function togglePause(){
+    if (!state.running || state.over) return;
+    input.paused = !input.paused;
+    if (input.paused){
+      showOverlay('Paused', 'Tap <b>Resume</b> to continue.', true, true);
+    } else {
+      hideOverlay();
+    }
+  }
+
+  startBtn.addEventListener('click', startGame);
+  restartBtn.addEventListener('click', startGame);
+  resumeBtn.addEventListener('click', () => { input.paused = false; hideOverlay(); });
+
+  // Pause when backgrounded
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.running && !state.over){
+      input.paused = true;
+      showOverlay('Paused', 'Game paused when the tab went to the background.', true, true);
+    }
+  });
+
+  // Main loop
+  function step(ts){
+    requestAnimationFrame(step);
+    const t = ts/1000;
+    let dt = t - (state.lastTime || t);
+    state.lastTime = t;
+    dt = clamp(dt, 0, 0.033);
+
+    if (!state.running || input.paused){
       clear();
-      drawShells();
-      drawShip();
+      for (const s of state.shells) drawPastaShell(s.x, s.y, s.r, s.rot);
       drawBullets();
+      drawShip();
       drawParticles(dt);
       return;
     }
@@ -708,6 +744,7 @@
     state.shootCooldown = Math.max(0, state.shootCooldown - dt);
     state.invuln = Math.max(0, state.invuln - dt);
 
+    // Ship control
     const rotSpeed = 4.8;
     if (input.left)  ship.a -= rotSpeed * dt;
     if (input.right) ship.a += rotSpeed * dt;
@@ -724,25 +761,25 @@
 
     ship.x += ship.vx * dt;
     ship.y += ship.vy * dt;
-    ship.r = 12;
     wrap(ship);
 
     if (input.shoot && ship.alive) shoot();
 
+    // Bullets
     for (let i = state.bullets.length - 1; i >= 0; i--){
       const b = state.bullets[i];
       b.x += b.vx * dt;
       b.y += b.vy * dt;
       b.life -= dt;
-
-      if (b.x < -b.r) b.x = W + b.r;
-      else if (b.x > W + b.r) b.x = -b.r;
-      if (b.y < -b.r) b.y = H + b.r;
-      else if (b.y > H + b.r) b.y = -b.r;
+      if (b.x < bounds.minX - b.r) b.x = bounds.maxX + b.r;
+      else if (b.x > bounds.maxX + b.r) b.x = bounds.minX - b.r;
+      if (b.y < bounds.minY - b.r) b.y = bounds.maxY + b.r;
+      else if (b.y > bounds.maxY + b.r) b.y = bounds.minY - b.r;
 
       if (b.life <= 0) state.bullets.splice(i, 1);
     }
 
+    // Shells
     for (const s of state.shells){
       s.x += s.vx * dt;
       s.y += s.vy * dt;
@@ -750,6 +787,7 @@
       wrap(s);
     }
 
+    // Particles
     for (let i = state.particles.length - 1; i >= 0; i--){
       const p = state.particles[i];
       p.x += p.vx * dt;
@@ -760,28 +798,29 @@
       if (p.t >= p.life) state.particles.splice(i, 1);
     }
 
+    // Bullet vs shell collisions
     for (let i = state.shells.length - 1; i >= 0; i--){
       const s = state.shells[i];
-      const sr = shellRadiusForCollision(s.r);
+      const sr = shellCollisionRadius(s.r);
 
-      let hitIndex = -1;
+      let hit = -1;
       for (let j = state.bullets.length - 1; j >= 0; j--){
         const b = state.bullets[j];
         if (Math.hypot(b.x - s.x, b.y - s.y) < sr + b.r){
-          hitIndex = j;
-          break;
+          hit = j; break;
         }
       }
-      if (hitIndex !== -1){
-        state.bullets.splice(hitIndex, 1);
+      if (hit !== -1){
+        state.bullets.splice(hit, 1);
         state.shells.splice(i, 1);
         splitShell(s);
       }
     }
 
+    // Ship vs shell collisions
     if (ship.alive){
       for (const s of state.shells){
-        const sr = shellRadiusForCollision(s.r);
+        const sr = shellCollisionRadius(s.r);
         if (Math.hypot(ship.x - s.x, ship.y - s.y) < sr + ship.r*0.9){
           killShip();
           break;
@@ -789,78 +828,23 @@
       }
     }
 
+    // Wave clear
     if (state.shells.length === 0){
       state.wave += 1;
       waveEl.textContent = state.wave;
       spawnWave(state.wave);
     }
 
+    // Render
     clear();
-    drawShells();
+    for (const s of state.shells) drawPastaShell(s.x, s.y, s.r, s.rot);
     drawBullets();
     drawShip();
     drawParticles(dt);
-
-    ctx.save();
-    ctx.globalAlpha = 0.12;
-    ctx.strokeStyle = 'rgba(233,238,247,0.30)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(W/2, H/2, Math.min(W,H)*0.38, 0, TAU);
-    ctx.stroke();
-    ctx.restore();
   }
 
-  // ---------- Overlay / flow ----------
-  function showOverlay(title, descHTML, canRestart){
-    titleEl.textContent = title;
-    descEl.innerHTML = descHTML;
-
-    overlay.style.display = 'grid';
-    startBtn.style.display = state.wave === 1 && state.score === 0 && state.lives === 3 ? '' : 'none';
-    resumeBtn.style.display = (!state.over && input.paused) ? '' : 'none';
-    restartBtn.style.display = canRestart ? '' : 'none';
-  }
-
-  function hideOverlay(){
-    overlay.style.display = 'none';
-  }
-
-  function startGame(){
-    state.running = true;
-    state.over = false;
-    input.paused = false;
-    state.wave = 1;
-    state.score = 0;
-    state.lives = 3;
-    scoreEl.textContent = '0';
-    livesEl.textContent = '3';
-    waveEl.textContent = '1';
-    spawnWave(1);
-    hideOverlay();
-  }
-
-  startBtn.addEventListener('click', () => startGame());
-  resumeBtn.addEventListener('click', () => { input.paused = false; hideOverlay(); });
-  restartBtn.addEventListener('click', () => startGame());
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && state.running && !state.over){
-      input.paused = true;
-      showOverlay('Paused', 'Game paused when the tab went to the background.', false);
-      startBtn.style.display = 'none';
-      resumeBtn.style.display = '';
-      restartBtn.style.display = '';
-    }
-  });
-
-  const ro = new ResizeObserver(() => {
-    resize();
-    initStars();
-  });
-  ro.observe(canvas);
-
-  showOverlay('Pasta Shells', 'Tap <b>Start</b>. On iPhone, use the buttons below (Left, Right, Thrust, Shoot).', true);
+  // Show initial overlay
+  showOverlay('Noodle!', 'Tap <b>Start</b>. On iPhone, use the four buttons at the bottom.', true, false);
 
   requestAnimationFrame(step);
 })();
