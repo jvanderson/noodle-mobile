@@ -2,742 +2,867 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-  <title>Shell Noodles (iPhone Controls)</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+  />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Pasta Shells (Asteroids)</title>
   <style>
-    :root { color-scheme: dark; --pad: 14px; }
-    html, body {
-      margin:0; height:100%;
-      background:#0b0f18; overflow:hidden;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      -webkit-text-size-adjust: 100%;
+    :root{
+      --bg:#05070a;
+      --fg:#e9eef7;
+      --muted:#9fb0c7;
+      --btn:#111827cc;
+      --btn2:#0b1220cc;
+      --stroke:rgba(233,238,247,.9);
+      --stroke2:rgba(233,238,247,.5);
+      --good:#9affc8;
+      --bad:#ff8aa3;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
     }
-    canvas { display:block; width:100vw; height:100vh; touch-action:none; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      overscroll-behavior: none;
+      touch-action: none; /* avoid page scroll/zoom while playing */
+    }
+
+    #wrap {
+      position: fixed;
+      inset: 0;
+      padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px 6px;
+      user-select: none;
+    }
 
     .hud {
-      position: fixed; inset: 0; pointer-events:none;
-      display:flex; align-items:flex-start; justify-content:space-between;
-      padding:
-        calc(var(--pad) + env(safe-area-inset-top))
-        calc(var(--pad) + env(safe-area-inset-right))
-        var(--pad)
-        calc(var(--pad) + env(safe-area-inset-left));
-      color:#dbe6ff;
-      text-shadow: 0 1px 0 rgba(0,0,0,.6);
-      font-size:14px;
-      gap:10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+      color: var(--muted);
     }
-    .box {
-      background: rgba(10,14,25,.55);
-      border: 1px solid rgba(140,170,255,.18);
-      border-radius: 12px;
-      padding: 9px 11px;
-      backdrop-filter: blur(8px);
-      max-width: 380px;
-    }
-    .title { font-weight:800; letter-spacing:.2px; margin:0 0 6px 0; }
-    .small { opacity:.88; line-height:1.35; }
-    .right { text-align:right; min-width: 140px; }
 
-    .overlay {
-      position: fixed; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      padding: 18px;
-      color:#eaf1ff;
-      text-shadow: 0 2px 0 rgba(0,0,0,.7);
-      pointer-events: none;
+    .hud b { color: var(--fg); font-weight: 700; }
+
+    .pill {
+      padding: 6px 10px;
+      border: 1px solid rgba(233,238,247,.18);
+      border-radius: 999px;
+      background: rgba(17,24,39,.35);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
-    .panel {
-      width: min(560px, 100%);
-      background: rgba(10,14,25,.65);
-      border: 1px solid rgba(140,170,255,.18);
-      border-radius: 16px;
-      padding: 18px 16px;
-      backdrop-filter: blur(10px);
-      text-align:center;
+
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color: var(--fg);
+      font-weight: 750;
+      letter-spacing: .2px;
     }
-    .panel h1 { margin:0 0 8px 0; font-size: 22px; }
-    .panel p { margin: 8px 0; opacity:.92; line-height: 1.35; }
-    .kbd { display:inline-block; padding: 1px 7px; border-radius: 7px; border:1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); font-weight:700; }
-    .hidden { display:none; }
+    .brand small{
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: .2px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: radial-gradient(800px 500px at 60% 40%, rgba(60,120,255,.08), transparent 60%),
+                  radial-gradient(600px 450px at 30% 70%, rgba(0,255,180,.06), transparent 60%),
+                  #05070a;
+      border-top: 1px solid rgba(233,238,247,.06);
+      border-bottom: 1px solid rgba(233,238,247,.06);
+    }
+
+    /* Controls */
+    footer {
+      padding: 10px 12px calc(12px + var(--safe-bottom));
+      user-select: none;
+    }
 
     .controls {
-      position: fixed; left:0; right:0; bottom:0;
-      display:flex; justify-content:space-between; align-items:flex-end;
-      gap: 12px;
-      padding:
-        12px calc(12px + env(safe-area-inset-right))
-        calc(12px + env(safe-area-inset-bottom))
-        calc(12px + env(safe-area-inset-left));
-      pointer-events:none;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1.2fr;
+      gap: 10px;
+      align-items: stretch;
     }
 
-    .joyWrap { pointer-events:auto; touch-action:none; }
-    .joy {
-      width: 132px; height: 132px;
-      border-radius: 999px;
-      border: 1px solid rgba(140,170,255,.22);
-      background: rgba(10,14,25,.45);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 28px rgba(0,0,0,.40);
-      position: relative;
-      overflow: hidden;
-    }
-    .joy::before{
-      content:"";
-      position:absolute; inset:0;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,.09), rgba(255,255,255,0) 55%),
-        radial-gradient(circle at 70% 80%, rgba(140,170,255,.06), rgba(140,170,255,0) 55%);
-      pointer-events:none;
-    }
-    .joyLabel {
-      position:absolute; left:50%; top:50%;
-      transform: translate(-50%,-50%);
-      font-weight:800; letter-spacing:.6px;
-      font-size: 11px;
-      opacity: .65;
-      color:#dbe6ff;
-      user-select:none;
-      pointer-events:none;
-    }
-    .knob {
-      width: 58px; height: 58px;
-      border-radius: 18px;
-      border: 1px solid rgba(180,200,255,.35);
-      background: rgba(30,40,75,.55);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 26px rgba(0,0,0,.45);
-      position:absolute; left:50%; top:50%;
-      transform: translate(-50%,-50%);
-      display:flex; align-items:center; justify-content:center;
-      user-select:none;
-      pointer-events:none;
-    }
-    .knob::after{
-      content:"";
-      width: 22px; height: 22px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.28), rgba(255,255,255,0) 60%);
-      opacity:.9;
+    .btn {
+      -webkit-tap-highlight-color: transparent;
+      border: 1px solid rgba(233,238,247,.16);
+      background: linear-gradient(180deg, var(--btn), var(--btn2));
+      color: var(--fg);
+      border-radius: 16px;
+      padding: 14px 10px;
+      font-weight: 800;
+      letter-spacing: .2px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      min-height: 56px;
+      touch-action: none;
+      cursor: pointer;
     }
 
-    .shootWrap { pointer-events:auto; touch-action:none; }
-    .shootBtn {
-      width: 94px; height: 94px;
-      border-radius: 26px;
-      border: 1px solid rgba(140,170,255,.28);
-      background: rgba(10,14,25,.45);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 28px rgba(0,0,0,.40);
-      display:flex; align-items:center; justify-content:center;
-      font-weight:900; font-size: 14px; letter-spacing:.8px;
-      color:#eaf1ff;
-      user-select:none;
-      -webkit-user-select:none;
-      -webkit-touch-callout:none;
+    .btn:active, .btn.active {
+      transform: translateY(1px);
+      border-color: rgba(233,238,247,.28);
+      box-shadow: 0 0 0 3px rgba(120,180,255,.12) inset;
     }
-    .shootBtn.active { transform: translateY(1px) scale(0.985); background: rgba(30,40,75,.55); border-color: rgba(180,200,255,.45); }
 
-    @media (max-width: 380px) {
-      .joy { width: 120px; height: 120px; }
-      .knob { width: 54px; height: 54px; border-radius: 16px; }
-      .shootBtn { width: 86px; height: 86px; border-radius: 24px; }
-      .hud { font-size: 13px; }
+    .btn .hint {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .1px;
     }
-    @media (min-width: 900px) and (pointer:fine) {
-      .joy { width: 112px; height: 112px; }
-      .knob { width: 50px; height: 50px; }
-      .shootBtn { width: 80px; height: 80px; }
+
+    .btn.shoot {
+      border-color: rgba(233,238,247,.22);
+    }
+
+    .btn.shoot:active, .btn.shoot.active {
+      box-shadow: 0 0 0 3px rgba(255,190,120,.12) inset;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .card {
+      pointer-events: auto;
+      max-width: 520px;
+      width: min(520px, calc(100vw - 28px));
+      border: 1px solid rgba(233,238,247,.18);
+      border-radius: 22px;
+      background: rgba(10,14,22,.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 18px 18px 16px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.5);
+      text-align: left;
+    }
+    .card h1 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      letter-spacing: .2px;
+    }
+    .card p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 14px;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .card button {
+      pointer-events: auto;
+      border: 1px solid rgba(233,238,247,.2);
+      background: rgba(233,238,247,.08);
+      color: var(--fg);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .card button:active {
+      transform: translateY(1px);
+    }
+    .tiny {
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(233,238,247,.55);
+    }
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(233,238,247,.18);
+      background: rgba(0,0,0,.25);
+      color: rgba(233,238,247,.8);
+    }
+
+    /* Keep controls usable on narrow screens */
+    @media (max-width: 420px){
+      .controls { gap: 8px; }
+      .btn { border-radius: 14px; min-height: 54px; padding: 12px 8px; }
     }
   </style>
 </head>
 <body>
-<canvas id="c"></canvas>
+  <div id="wrap">
+    <header>
+      <div class="brand">
+        Pasta Shells <small>(Asteroids)</small>
+      </div>
+      <div class="hud">
+        <span class="pill">Score: <b id="score">0</b></span>
+        <span class="pill">Lives: <b id="lives">3</b></span>
+        <span class="pill">Wave: <b id="wave">1</b></span>
+      </div>
+    </header>
 
-<div class="hud">
-  <div class="box">
-    <div class="title">Shell Noodles</div>
-    <div class="small">
-      iPhone controls:<br/>
-      <b>Left joystick</b> = rotate (left/right) + thrust (push up).<br/>
-      <b>Right button</b> = shoot (hold to rapid fire).<br/>
-      Keyboard: <span class="kbd">←</span>/<span class="kbd">→</span>, <span class="kbd">↑</span>, <span class="kbd">Space</span>.
+    <div style="position:relative;">
+      <canvas id="c"></canvas>
+
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <h1 id="title">Pasta Shells</h1>
+          <p id="desc">
+            Dodge the pasta shells. Shoot them into smaller shells. Clear the wave.
+            Mobile controls are below; keyboard also works on desktop.
+          </p>
+          <div class="row">
+            <button id="startBtn">Start</button>
+            <button id="resumeBtn" style="display:none;">Resume</button>
+            <button id="restartBtn" style="display:none;">Restart</button>
+          </div>
+          <div class="tiny">
+            Controls: <span class="kbd">◀</span>/<span class="kbd">▶</span> rotate,
+            <span class="kbd">▲</span> thrust, <span class="kbd">Space</span> shoot,
+            <span class="kbd">P</span> pause.
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="box right">
-    <div><b>Score:</b> <span id="score">0</span></div>
-    <div><b>Lives:</b> <span id="lives">3</span></div>
-    <div><b>Wave:</b> <span id="wave">1</span></div>
-  </div>
-</div>
 
-<div class="controls" aria-hidden="true">
-  <div class="joyWrap">
-    <div class="joy" id="joy">
-      <div class="joyLabel">ROTATE + THRUST</div>
-      <div class="knob" id="knob"></div>
-    </div>
+    <footer>
+      <div class="controls">
+        <button class="btn" id="leftBtn" aria-label="Rotate Left">
+          ◀ <span class="hint">Left</span>
+        </button>
+        <button class="btn" id="rightBtn" aria-label="Rotate Right">
+          ▶ <span class="hint">Right</span>
+        </button>
+        <button class="btn" id="thrustBtn" aria-label="Thrust">
+          ▲ <span class="hint">Thrust</span>
+        </button>
+        <button class="btn shoot" id="shootBtn" aria-label="Shoot">
+          ● <span class="hint">Shoot</span>
+        </button>
+      </div>
+    </footer>
   </div>
-  <div class="shootWrap">
-    <div class="shootBtn" id="shootBtn">SHOOT</div>
-  </div>
-</div>
-
-<div class="overlay" id="overlay">
-  <div class="panel">
-    <h1>Tap to Start</h1>
-    <p>Left joystick: rotate (left/right) and thrust (push up). Right button: shoot.</p>
-    <p>Clear the screen of <b>shell noodles</b> without getting pasta'd.</p>
-    <p style="opacity:.75;">Tip: a little thrust goes a long way.</p>
-  </div>
-</div>
 
 <script>
 (() => {
+  // ---------- Canvas / DPR ----------
   const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d', { alpha:false });
+  const ctx = canvas.getContext('2d', { alpha: false });
+  let W = 0, H = 0, DPR = 1;
 
-  const overlay = document.getElementById('overlay');
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    DPR = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+    W = Math.max(320, Math.floor(rect.width));
+    H = Math.max(320, Math.floor(rect.height));
+    canvas.width  = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize, { passive: true });
+  resize();
+
+  // Prevent iOS Safari gestures that can interfere.
+  document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+  // ---------- UI ----------
   const scoreEl = document.getElementById('score');
   const livesEl = document.getElementById('lives');
   const waveEl  = document.getElementById('wave');
 
-  const joy = document.getElementById('joy');
-  const knob = document.getElementById('knob');
+  const overlay = document.getElementById('overlay');
+  const titleEl = document.getElementById('title');
+  const descEl  = document.getElementById('desc');
+  const startBtn = document.getElementById('startBtn');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const restartBtn = document.getElementById('restartBtn');
+
+  // ---------- Input state ----------
+  const input = { left:false, right:false, thrust:false, shoot:false, paused:false };
+  const leftBtn = document.getElementById('leftBtn');
+  const rightBtn = document.getElementById('rightBtn');
+  const thrustBtn = document.getElementById('thrustBtn');
   const shootBtn = document.getElementById('shootBtn');
 
-  function resize() {
-    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    canvas.width  = Math.floor(window.innerWidth * dpr);
-    canvas.height = Math.floor(window.innerHeight * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  function bindHoldButton(btn, onDown, onUp){
+    const setActive = (v) => btn.classList.toggle('active', v);
+
+    const down = (e) => {
+      e.preventDefault();
+      onDown();
+      setActive(true);
+    };
+    const up = (e) => {
+      e.preventDefault();
+      onUp();
+      setActive(false);
+    };
+
+    // Pointer events unify touch/mouse.
+    btn.addEventListener('pointerdown', down, { passive:false });
+    btn.addEventListener('pointerup', up, { passive:false });
+    btn.addEventListener('pointercancel', up, { passive:false });
+    btn.addEventListener('pointerleave', (e) => { if (e.buttons === 0) up(e); }, { passive:false });
   }
-  window.addEventListener('resize', resize, { passive:true });
-  resize();
 
-  document.addEventListener('touchmove', (e) => e.preventDefault(), { passive:false });
+  bindHoldButton(leftBtn,  () => input.left = true,  () => input.left = false);
+  bindHoldButton(rightBtn, () => input.right = true, () => input.right = false);
+  bindHoldButton(thrustBtn,() => input.thrust = true,() => input.thrust = false);
+  bindHoldButton(shootBtn, () => input.shoot = true, () => input.shoot = false);
 
+  // Keyboard (desktop)
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    if (e.code === 'ArrowLeft')  input.left = true;
+    if (e.code === 'ArrowRight') input.right = true;
+    if (e.code === 'ArrowUp')    input.thrust = true;
+    if (e.code === 'Space')      input.shoot = true;
+    if (e.code === 'KeyP')       togglePause();
+  }, { passive:false });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'ArrowLeft')  input.left = false;
+    if (e.code === 'ArrowRight') input.right = false;
+    if (e.code === 'ArrowUp')    input.thrust = false;
+    if (e.code === 'Space')      input.shoot = false;
+  }, { passive:true });
+
+  // ---------- Math helpers ----------
   const TAU = Math.PI * 2;
-  const rand = (a,b) => a + Math.random()*(b-a);
-  const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
-  const wrap = (v, max) => (v < 0 ? v + max : (v >= max ? v - max : v));
-  const dist2 = (ax,ay,bx,by) => { const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; };
+  const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+  const rand = (a,b)=>a+Math.random()*(b-a);
 
-  // Four commands internal
-  const keys = { left:false, right:false, up:false, space:false };
-
-  const joyState = { active:false, pid:null, cx:0, cy:0, radius:40, rot:0, thrust:0 };
-
-  const ship = { x:0,y:0, vx:0,vy:0, angle:-Math.PI/2, radius:12, invuln:0 };
-  const bullets = [];
-  const noodles = [];
-  const particles = [];
-
-  let score = 0, lives = 3, wave = 1;
-  let cooldown = 0;
-  let running = false;
-  let gameOver = false;
-
-  function syncHUD(){
-    scoreEl.textContent = String(score);
-    livesEl.textContent = String(lives);
-    waveEl.textContent  = String(wave);
+  function wrap(obj){
+    if (obj.x < -obj.r) obj.x = W + obj.r;
+    else if (obj.x > W + obj.r) obj.x = -obj.r;
+    if (obj.y < -obj.r) obj.y = H + obj.r;
+    else if (obj.y > H + obj.r) obj.y = -obj.r;
   }
 
-  function resetShip(center=true){
-    ship.x = center ? window.innerWidth/2 : ship.x;
-    ship.y = center ? window.innerHeight/2 : ship.y;
-    ship.vx = ship.vy = 0;
-    ship.angle = -Math.PI/2;
-    ship.invuln = 2.0;
+  // ---------- Game objects ----------
+  const state = {
+    running:false,
+    over:false,
+    wave:1,
+    score:0,
+    lives:3,
+    invuln:0,
+    bullets:[],
+    shells:[],
+    particles:[],
+    stars:[],
+    lastTime:0,
+    shootCooldown:0
+  };
+
+  const ship = {
+    x: W/2, y: H/2,
+    vx: 0, vy: 0,
+    a: -Math.PI/2,
+    r: 12,
+    alive:true
+  };
+
+  // ---------- Starfield ----------
+  function initStars(){
+    state.stars = [];
+    const n = Math.floor((W*H)/26000);
+    for(let i=0;i<n;i++){
+      state.stars.push({
+        x: Math.random()*W,
+        y: Math.random()*H,
+        s: rand(0.5,1.8),
+        a: rand(0.12,0.9)
+      });
+    }
+  }
+  initStars();
+
+  // ---------- Pasta shell (conchiglie) drawing ----------
+  function drawPastaShell(x, y, r, rot){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+
+    ctx.lineWidth = Math.max(1, r * 0.08);
+    ctx.strokeStyle = 'rgba(233,238,247,0.90)';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Outer rim
+    ctx.beginPath();
+    const steps = 48;
+    for(let i=0;i<=steps;i++){
+      const t = (i/steps)*TAU;
+      const pinch = 0.78 + 0.22*Math.cos(t);
+      const wave  = 1 + 0.06*Math.sin(3*t) + 0.04*Math.sin(7*t);
+      const sx = Math.cos(t) * r * 1.05 * wave;
+      const sy = Math.sin(t) * r * 0.82 * wave * pinch;
+      if (i===0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+
+    // Inner rim
+    ctx.strokeStyle = 'rgba(233,238,247,0.55)';
+    ctx.lineWidth = Math.max(1, r * 0.06);
+    ctx.beginPath();
+    for(let i=0;i<=steps;i++){
+      const t = (i/steps)*TAU;
+      const pinch = 0.82 + 0.18*Math.cos(t);
+      const wave  = 1 + 0.05*Math.sin(3*t + 0.6) + 0.03*Math.sin(7*t + 0.2);
+      const sx = Math.cos(t) * r * 0.72 * wave;
+      const sy = Math.sin(t) * r * 0.52 * wave * pinch;
+      if (i===0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+
+    // Ribs
+    ctx.strokeStyle = 'rgba(233,238,247,0.45)';
+    ctx.lineWidth = Math.max(1, r * 0.04);
+    const ribs = 9;
+    for(let i=0;i<ribs;i++){
+      const u = (i/(ribs-1))*2 - 1;
+      const x0 = u * r * 0.50;
+      const y0 = -r*0.05 - (1 - Math.abs(u))*r*0.05;
+      const x1 = u * r * 0.78;
+      const y1 = r*0.55;
+
+      const cx = u * r * 0.62 + Math.sin(u*2.6)*r*0.08;
+      const cy = r*0.18;
+
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo(cx, cy, x1, y1);
+      ctx.stroke();
+    }
+
+    // Lip
+    ctx.strokeStyle = 'rgba(233,238,247,0.60)';
+    ctx.lineWidth = Math.max(1, r * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(-r*0.35, -r*0.15);
+    ctx.quadraticCurveTo(0, -r*0.35, r*0.35, -r*0.15);
+    ctx.stroke();
+
+    ctx.restore();
   }
 
-  function startNewGame(){
-    score = 0; lives = 3; wave = 1;
-    bullets.length = 0; noodles.length = 0; particles.length = 0;
-    cooldown = 0;
-    gameOver = false;
-    resetShip(true);
-    spawnWave(wave);
-    syncHUD();
+  function shellRadiusForCollision(r){ return r * 0.92; }
+
+  // ---------- Spawning ----------
+  function resetShip(){
+    ship.x = W/2;
+    ship.y = H/2;
+    ship.vx = 0; ship.vy = 0;
+    ship.a = -Math.PI/2;
+    ship.alive = true;
+    state.invuln = 2.0;
   }
 
-  function createNoodle(tier, x, y){
-    const baseR = tier===3 ? 48 : (tier===2 ? 30 : 18);
-    const r = baseR * rand(0.85, 1.12);
-    const speed = tier===3 ? rand(18, 42) : (tier===2 ? rand(32, 64) : rand(48, 90));
-    const ang = rand(0, TAU);
-    return { x,y, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
-      angle:rand(0,TAU), spin: rand(-1,1) * (tier===3 ? 0.55 : tier===2 ? 0.95 : 1.35),
-      tier, r, hit:r*0.82, wobble:rand(0,TAU), wobbleSpeed:rand(1.1,2.2) };
-  }
+  function spawnWave(wave){
+    state.shells = [];
+    state.bullets = [];
+    state.particles = [];
+    resetShip();
 
-  function spawnWave(w){
-    const count = 3 + Math.min(9, w);
-    for (let i=0;i<count;i++){
+    const count = Math.min(4 + wave, 10);
+    for(let i=0;i<count;i++){
       let x,y;
-      for (let tries=0; tries<25; tries++){
-        x = rand(0, window.innerWidth);
-        y = rand(0, window.innerHeight);
-        if (dist2(x,y, window.innerWidth/2, window.innerHeight/2) > 240*240) break;
+      for(let tries=0; tries<40; tries++){
+        x = Math.random()*W;
+        y = Math.random()*H;
+        if (Math.hypot(x - ship.x, y - ship.y) > Math.min(W,H)*0.25) break;
       }
-      noodles.push(createNoodle(3, x, y));
+      const size = rand(28, 46) * (1 + Math.min(0.6, wave*0.03));
+      const speed = rand(18, 40) + wave*2;
+      const ang = rand(0, TAU);
+      state.shells.push({
+        x, y,
+        vx: Math.cos(ang)*speed,
+        vy: Math.sin(ang)*speed,
+        r: size,
+        rot: rand(0, TAU),
+        vr: rand(-1.2, 1.2),
+        tier: 3
+      });
     }
   }
 
-  function splitNoodle(n){
-    if (n.tier <= 1) return;
-    const newTier = n.tier - 1;
-    const pieces = 2 + (Math.random()<0.35 ? 1 : 0);
-    for (let i=0;i<pieces;i++){
-      const nn = createNoodle(newTier, wrap(n.x+rand(-10,10), window.innerWidth), wrap(n.y+rand(-10,10), window.innerHeight));
-      nn.vx += n.vx*0.35; nn.vy += n.vy*0.35;
-      noodles.push(nn);
+  // ---------- Particles ----------
+  function boom(x,y, n, baseSpeed){
+    for(let i=0;i<n;i++){
+      const a = rand(0, TAU);
+      const s = baseSpeed * rand(0.4, 1.0);
+      state.particles.push({
+        x, y,
+        vx: Math.cos(a)*s,
+        vy: Math.sin(a)*s,
+        life: rand(0.35, 0.9),
+        t: 0
+      });
     }
   }
 
-  function puff(x,y,count,speed,life,colorA,colorB){
-    for (let i=0;i<count;i++){
-      const a = rand(0,TAU);
-      const s = rand(speed*0.35, speed);
-      particles.push({ x,y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, t:0, life:rand(life*0.65,life), r:rand(1.2,3.0), colorA, colorB });
-    }
-  }
-
-  function drawStarfield(){
-    const w = window.innerWidth, h = window.innerHeight;
-    const t = performance.now() * 0.00002;
-    ctx.fillStyle = '#0b0f18';
-    ctx.fillRect(0,0,w,h);
-
-    const layers = (Math.min(w,h) < 520)
-      ? [ { n: 38, s: 0.22, a: 0.7 }, { n: 14, s: 0.55, a: 0.92 } ]
-      : [ { n: 62, s: 0.18, a: 0.62 }, { n: 36, s: 0.34, a: 0.74 }, { n: 18, s: 0.58, a: 0.92 } ];
-
-    for (const L of layers){
-      ctx.globalAlpha = L.a;
-      for (let i=0;i<L.n;i++){
-        const fx = (Math.sin(i*999 + t*TAU) * 0.5 + 0.5);
-        const fy = (Math.cos(i*777 + t*TAU*1.3) * 0.5 + 0.5);
-        const x = fx*w, y = fy*h;
-        const r = 1 + (i%3===0 ? 1 : 0);
-        ctx.beginPath();
-        ctx.arc(x,y, r*L.s*2.2, 0, TAU);
-        ctx.fillStyle = '#dbe6ff';
-        ctx.fill();
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawShip(){
-    ctx.save();
-    ctx.translate(ship.x, ship.y);
-    ctx.rotate(ship.angle);
-
-    const blink = ship.invuln > 0 ? (Math.floor(performance.now()/120)%2===0) : true;
-    ctx.globalAlpha = blink ? 1 : 0.25;
-
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#dbe6ff';
-    ctx.beginPath();
-    ctx.moveTo(16,0);
-    ctx.lineTo(-12,-10);
-    ctx.lineTo(-7,0);
-    ctx.lineTo(-12,10);
-    ctx.closePath();
-    ctx.stroke();
-
-    if (keys.up && running && !gameOver){
-      ctx.strokeStyle = '#9ad7ff';
-      ctx.beginPath();
-      ctx.moveTo(-10,0);
-      ctx.lineTo(-22 - rand(0,8), 0);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-    ctx.globalAlpha = 1;
-  }
-
-  function drawBullet(b){
-    ctx.fillStyle = '#eaf1ff';
-    ctx.beginPath();
-    ctx.arc(b.x,b.y,2.2,0,TAU);
-    ctx.fill();
-  }
-
-  function drawNoodle(n){
-    const r = n.r;
-    const wob = Math.sin(n.wobble) * (r * 0.06);
-
-    ctx.save();
-    ctx.translate(n.x, n.y);
-    ctx.rotate(n.angle);
-
-    // shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.beginPath();
-    ctx.ellipse(6, 7, r*0.98, r*0.70, 0, 0, TAU);
-    ctx.fill();
-
-    // body gradient
-    const bodyGrad = ctx.createLinearGradient(-r, -r*0.6, r, r*0.8);
-    bodyGrad.addColorStop(0.0, 'rgba(255, 242, 210, 0.98)');
-    bodyGrad.addColorStop(0.45,'rgba(236, 205, 145, 0.98)');
-    bodyGrad.addColorStop(1.0, 'rgba(185, 140, 75, 0.98)');
-
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r*0.98, r*0.72, 0, 0, TAU);
-    ctx.fill();
-
-    // carve opening
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    ctx.ellipse(wob*0.18, -wob*0.10, r*0.58, r*0.36, 0, 0, TAU);
-    ctx.fill();
-    ctx.restore();
-
-    // cavity shading
-    const cavityGrad = ctx.createRadialGradient(-r*0.10, -r*0.06, r*0.05, r*0.22, r*0.12, r*0.70);
-    cavityGrad.addColorStop(0.0, 'rgba(85, 55, 25, 0.80)');
-    cavityGrad.addColorStop(0.55,'rgba(55, 32, 14, 0.78)');
-    cavityGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
-    ctx.fillStyle = cavityGrad;
-    ctx.beginPath();
-    ctx.ellipse(wob*0.15, -wob*0.08, r*0.55, r*0.34, 0, 0, TAU);
-    ctx.fill();
-
-    // rim highlight + rim shadow
-    ctx.lineWidth = Math.max(2.2, r*0.085);
-    ctx.strokeStyle = 'rgba(255,255,255,0.42)';
-    ctx.beginPath();
-    ctx.ellipse(-r*0.02, -r*0.02, r*0.96, r*0.70, 0, 0, TAU);
-    ctx.stroke();
-
-    ctx.lineWidth = Math.max(2.0, r*0.06);
-    ctx.strokeStyle = 'rgba(70,45,22,0.28)';
-    ctx.beginPath();
-    ctx.ellipse(r*0.04, r*0.05, r*0.96, r*0.70, 0, 0, TAU);
-    ctx.stroke();
-
-    // ridges (highlight + shadow)
-    const ridges = Math.floor(7 + n.tier*2);
-    for (let i=0;i<ridges;i++){
-      const t = (i/(ridges-1))*2 - 1;
-      const x = t * r * 0.72;
-      const cap = (r*0.66);
-      const inside = Math.max(0, cap*cap - (x*0.90)*(x*0.90));
-      const yTop = -Math.sqrt(inside);
-      const yBot =  Math.sqrt(inside);
-
-      ctx.lineWidth = Math.max(1.2, r*0.042);
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-      ctx.beginPath();
-      ctx.moveTo(x - r*0.01, yTop + wob*0.10);
-      ctx.lineTo(x - r*0.01, yBot + wob*0.10);
-      ctx.stroke();
-
-      ctx.strokeStyle = 'rgba(90,55,20,0.26)';
-      ctx.beginPath();
-      ctx.moveTo(x + r*0.015, yTop + wob*0.10);
-      ctx.lineTo(x + r*0.015, yBot + wob*0.10);
-      ctx.stroke();
-    }
-
-    // shine streak
-    ctx.globalAlpha = 0.35;
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.lineWidth = Math.max(1.4, r*0.035);
-    ctx.beginPath();
-    ctx.ellipse(-r*0.18, -r*0.18, r*0.55, r*0.30, -0.3, 0.3, 2.2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    ctx.restore();
-  }
-
-  function drawParticles(){
-    for (const p of particles){
-      const u = clamp(p.t / p.life, 0, 1);
-      const a = 1 - u;
-      ctx.globalAlpha = a;
-      ctx.fillStyle = (u < 0.5) ? p.colorA : p.colorB;
-      ctx.beginPath();
-      ctx.arc(p.x,p.y, p.r*(1+u*0.9), 0, TAU);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
+  // ---------- Game logic ----------
   function shoot(){
-    if (cooldown > 0) return;
-    cooldown = 0.13;
-    const speed = 540;
-    const bx = ship.x + Math.cos(ship.angle)*(ship.radius+7);
-    const by = ship.y + Math.sin(ship.angle)*(ship.radius+7);
-    bullets.push({ x:bx, y:by, vx: ship.vx + Math.cos(ship.angle)*speed, vy: ship.vy + Math.sin(ship.angle)*speed, life:0.9 });
+    if (state.shootCooldown > 0) return;
+    state.shootCooldown = 0.18;
+
+    const speed = 520;
+    const bx = ship.x + Math.cos(ship.a)*ship.r*1.2;
+    const by = ship.y + Math.sin(ship.a)*ship.r*1.2;
+
+    state.bullets.push({
+      x: bx, y: by,
+      vx: ship.vx + Math.cos(ship.a)*speed,
+      vy: ship.vy + Math.sin(ship.a)*speed,
+      life: 0.9,
+      r: 2.2
+    });
   }
 
   function killShip(){
-    lives--;
-    syncHUD();
-    puff(ship.x, ship.y, 28, 180, 0.9, 'rgba(255,230,200,0.95)', 'rgba(160,210,255,0.90)');
-    try { if (navigator.vibrate) navigator.vibrate(35); } catch {}
-    if (lives <= 0){
-      gameOver = true;
-      overlay.classList.remove('hidden');
-      overlay.querySelector('h1').textContent = 'Game Over';
-      overlay.querySelectorAll('p')[0].innerHTML = `Final score: <span class="kbd">${score}</span>`;
-      overlay.querySelectorAll('p')[1].textContent = 'Tap anywhere to restart.';
-      overlay.querySelectorAll('p')[2].textContent = 'Joystick + shoot. Same game. Less rage.';
-      overlay.querySelectorAll('p')[3].textContent = '';
+    if (state.invuln > 0) return;
+    state.lives -= 1;
+    livesEl.textContent = state.lives;
+    boom(ship.x, ship.y, 26, 160);
+
+    if (state.lives <= 0){
+      ship.alive = false;
+      state.over = true;
+      state.running = false;
+      showOverlay('Game Over', `Final score: <b>${state.score}</b>. Want another round?`, true);
       return;
     }
-    resetShip(true);
+
+    resetShip();
   }
 
-  function joyCenter(){
-    const r = joy.getBoundingClientRect();
-    joyState.cx = r.left + r.width/2;
-    joyState.cy = r.top + r.height/2;
-    joyState.radius = Math.min(r.width, r.height) * 0.42;
-  }
-  window.addEventListener('resize', joyCenter, { passive:true });
-  joyCenter();
+  function splitShell(s){
+    const tierScore = s.tier === 3 ? 20 : s.tier === 2 ? 50 : 100;
+    state.score += tierScore;
+    scoreEl.textContent = state.score;
 
-  function setKnob(dx, dy){
-    const max = joyState.radius;
-    const d = Math.hypot(dx, dy);
-    const k = (d > max && d > 0) ? (max/d) : 1;
-    const x = dx * k, y = dy * k;
+    boom(s.x, s.y, 18, 140);
 
-    knob.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    if (s.tier <= 1) return;
 
-    const nx = clamp(x / max, -1, 1);
-    const ny = clamp(y / max, -1, 1);
+    const newTier = s.tier - 1;
+    const newR = s.r * (newTier === 2 ? 0.62 : 0.48);
 
-    joyState.rot = nx;
-    joyState.thrust = clamp((-ny - 0.15) / 0.85, 0, 1);
-  }
-  function joyReset(){
-    joyState.active = false;
-    joyState.pid = null;
-    joyState.rot = 0;
-    joyState.thrust = 0;
-    setKnob(0,0);
-  }
-  setKnob(0,0);
-
-  function joyDown(e){
-    e.preventDefault();
-    if (!running){
-      running = true;
-      overlay.classList.add('hidden');
-      if (gameOver) startNewGame();
+    for(let k=0;k<2;k++){
+      const ang = rand(0, TAU);
+      const sp  = rand(30, 70) + (3 - newTier)*14;
+      state.shells.push({
+        x: s.x + rand(-6,6),
+        y: s.y + rand(-6,6),
+        vx: s.vx*0.4 + Math.cos(ang)*sp,
+        vy: s.vy*0.4 + Math.sin(ang)*sp,
+        r: newR,
+        rot: rand(0, TAU),
+        vr: rand(-2.0, 2.0),
+        tier: newTier
+      });
     }
-    joyCenter();
-    joyState.active = true;
-    joyState.pid = e.pointerId;
-    joy.setPointerCapture?.(e.pointerId);
-    setKnob(e.clientX - joyState.cx, e.clientY - joyState.cy);
-  }
-  function joyMove(e){
-    if (!joyState.active || e.pointerId !== joyState.pid) return;
-    e.preventDefault();
-    setKnob(e.clientX - joyState.cx, e.clientY - joyState.cy);
-  }
-  function joyUp(e){
-    if (e.pointerId !== joyState.pid) return;
-    e.preventDefault();
-    joy.releasePointerCapture?.(e.pointerId);
-    joyReset();
   }
 
-  joy.addEventListener('pointerdown', joyDown, { passive:false });
-  window.addEventListener('pointermove', joyMove, { passive:false });
-  window.addEventListener('pointerup', joyUp, { passive:false });
-  window.addEventListener('pointercancel', joyUp, { passive:false });
-
-  let shootPid = null;
-  function shootDown(e){
-    e.preventDefault();
-    if (!running){
-      running = true;
-      overlay.classList.add('hidden');
-      if (gameOver) startNewGame();
-    }
-    shootPid = e.pointerId;
-    keys.space = true;
-    shootBtn.classList.add('active');
-    shootBtn.setPointerCapture?.(e.pointerId);
-  }
-  function shootUp(e){
-    if (shootPid !== e.pointerId) return;
-    e.preventDefault();
-    keys.space = false;
-    shootPid = null;
-    shootBtn.classList.remove('active');
-    shootBtn.releasePointerCapture?.(e.pointerId);
-  }
-  shootBtn.addEventListener('pointerdown', shootDown, { passive:false });
-  shootBtn.addEventListener('pointerup', shootUp, { passive:false });
-  shootBtn.addEventListener('pointercancel', shootUp, { passive:false });
-
-  window.addEventListener('pointerdown', (e) => {
-    if (e.target === shootBtn || e.target === joy) return;
-    if (!running){
-      running = true;
-      overlay.classList.add('hidden');
-    }
-    if (gameOver){
-      startNewGame();
-      overlay.classList.add('hidden');
-      gameOver = false;
-    }
-  }, { passive:true });
-
-  function setKey(e, isDown){
-    if (e.code === 'ArrowLeft')  keys.left  = isDown;
-    if (e.code === 'ArrowRight') keys.right = isDown;
-    if (e.code === 'ArrowUp')    keys.up    = isDown;
-    if (e.code === 'Space')      keys.space = isDown;
-    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'ArrowUp' || e.code === 'Space') e.preventDefault();
-  }
-  window.addEventListener('keydown', (e)=>setKey(e,true), { passive:false });
-  window.addEventListener('keyup',   (e)=>setKey(e,false), { passive:false });
-
-  let last = performance.now();
-  function tick(now){
-    const dt = Math.min(0.033, (now-last)/1000);
-    last = now;
-
-    const w = window.innerWidth, h = window.innerHeight;
-    drawStarfield();
-
-    // Joystick -> four commands (with deadzones)
-    const joyLeft  = joyState.rot < -0.18;
-    const joyRight = joyState.rot >  0.18;
-    const joyUp    = joyState.thrust > 0.02;
-
-    const left  = keys.left  || joyLeft;
-    const right = keys.right || joyRight;
-    const up    = keys.up    || joyUp;
-    const fire  = keys.space;
-
-    if (running && !gameOver){
-      const rotBase = 4.4;
-      const rotAmt = clamp(Math.abs(joyState.rot), 0, 1);
-      const rotSpeed = rotBase * (0.35 + 0.75*rotAmt);
-      if (left)  ship.angle -= rotSpeed * dt;
-      if (right) ship.angle += rotSpeed * dt;
-
-      if (up){
-        const thrust = 240 * (0.25 + 0.85*joyState.thrust);
-        ship.vx += Math.cos(ship.angle)*thrust*dt;
-        ship.vy += Math.sin(ship.angle)*thrust*dt;
-      }
-
-      const damp = Math.pow(0.985, dt*60);
-      ship.vx *= damp; ship.vy *= damp;
-
-      const maxV = 330;
-      const sp = Math.hypot(ship.vx, ship.vy);
-      if (sp > maxV){ ship.vx = ship.vx/sp*maxV; ship.vy = ship.vy/sp*maxV; }
-
-      ship.x = wrap(ship.x + ship.vx*dt, w);
-      ship.y = wrap(ship.y + ship.vy*dt, h);
-
-      ship.invuln = Math.max(0, ship.invuln - dt);
-
-      cooldown = Math.max(0, cooldown - dt);
-      if (fire) shoot();
-
-      for (const n of noodles){
-        n.wobble += n.wobbleSpeed * dt;
-        n.angle += n.spin * dt;
-        n.x = wrap(n.x + n.vx*dt, w);
-        n.y = wrap(n.y + n.vy*dt, h);
-      }
-
-      for (let i=bullets.length-1; i>=0; i--){
-        const b = bullets[i];
-        b.life -= dt;
-        b.x = wrap(b.x + b.vx*dt, w);
-        b.y = wrap(b.y + b.vy*dt, h);
-        if (b.life <= 0) bullets.splice(i,1);
-      }
-
-      for (let i=noodles.length-1; i>=0; i--){
-        const n = noodles[i];
-        const hr2 = n.hit*n.hit;
-        let hit = -1;
-        for (let j=bullets.length-1; j>=0; j--){
-          const b = bullets[j];
-          if (dist2(n.x,n.y,b.x,b.y) <= hr2){ hit = j; break; }
-        }
-        if (hit !== -1){
-          bullets.splice(hit,1);
-          noodles.splice(i,1);
-          const pts = n.tier===3 ? 20 : (n.tier===2 ? 50 : 100);
-          score += pts;
-          syncHUD();
-          puff(n.x,n.y, 18, 150, 0.75, 'rgba(255,245,220,0.95)', 'rgba(190,150,90,0.80)');
-          splitNoodle(n);
-        }
-      }
-
-      if (ship.invuln <= 0){
-        for (const n of noodles){
-          const rr = (ship.radius + n.hit) * 0.92;
-          if (dist2(ship.x,ship.y,n.x,n.y) <= rr*rr){ killShip(); break; }
-        }
-      }
-
-      if (!gameOver && noodles.length === 0){
-        wave++;
-        syncHUD();
-        resetShip(true);
-        spawnWave(wave);
-        puff(w/2,h/2, 22, 120, 0.9, 'rgba(160,210,255,0.9)', 'rgba(255,240,210,0.85)');
-      }
-    }
-
-    for (let i=particles.length-1; i>=0; i--){
-      const p = particles[i];
-      p.t += dt;
-      p.x += p.vx*dt;
-      p.y += p.vy*dt;
-      p.vx *= Math.pow(0.97, dt*60);
-      p.vy *= Math.pow(0.97, dt*60);
-      if (p.t >= p.life) particles.splice(i,1);
-    }
-
-    for (const n of noodles) drawNoodle(n);
-    for (const b of bullets) drawBullet(b);
-    drawShip();
-    drawParticles();
+  // ---------- Rendering ----------
+  function drawShip(){
+    if (!ship.alive) return;
+    if (state.invuln > 0 && Math.floor(state.invuln*10)%2 === 0) return;
 
     ctx.save();
-    const grd = ctx.createRadialGradient(w/2,h/2, Math.min(w,h)*0.16, w/2,h/2, Math.max(w,h)*0.72);
-    grd.addColorStop(0,'rgba(0,0,0,0)');
-    grd.addColorStop(1,'rgba(0,0,0,0.45)');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0,0,w,h);
-    ctx.restore();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.a);
 
-    requestAnimationFrame(tick);
+    ctx.strokeStyle = 'rgba(233,238,247,0.90)';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(16, 0);
+    ctx.lineTo(-12, -9);
+    ctx.lineTo(-8, 0);
+    ctx.lineTo(-12, 9);
+    ctx.closePath();
+    ctx.stroke();
+
+    if (input.thrust){
+      ctx.strokeStyle = 'rgba(154,255,200,0.75)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-10, 0);
+      ctx.lineTo(-22 - Math.random()*8, 0);
+      ctx.stroke();
+    }
+
+    ctx.restore();
   }
 
-  resetShip(true);
-  startNewGame();
-  running = false;
-  overlay.classList.remove('hidden');
-  syncHUD();
-  requestAnimationFrame(tick);
+  function drawBullets(){
+    ctx.save();
+    ctx.fillStyle = 'rgba(233,238,247,0.95)';
+    for(const b of state.bullets){
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawShells(){
+    for(const s of state.shells){
+      drawPastaShell(s.x, s.y, s.r, s.rot);
+    }
+  }
+
+  function drawParticles(dt){
+    ctx.save();
+    ctx.strokeStyle = 'rgba(233,238,247,0.55)';
+    ctx.lineWidth = 1.5;
+    for(const p of state.particles){
+      const a = 1 - (p.t / p.life);
+      ctx.globalAlpha = Math.max(0, Math.min(1, a));
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x - p.vx*dt*0.06, p.y - p.vy*dt*0.06);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawStars(){
+    ctx.save();
+    for(const s of state.stars){
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = 'rgba(233,238,247,0.85)';
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function clear(){
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0,0,W,H);
+    drawStars();
+  }
+
+  // ---------- Update loop ----------
+  function step(t){
+    requestAnimationFrame(step);
+    const time = t/1000;
+    let dt = time - (state.lastTime || time);
+    state.lastTime = time;
+    dt = Math.max(0, Math.min(0.033, dt));
+
+    if (!state.running || input.paused) {
+      clear();
+      drawShells();
+      drawShip();
+      drawBullets();
+      drawParticles(dt);
+      return;
+    }
+
+    state.shootCooldown = Math.max(0, state.shootCooldown - dt);
+    state.invuln = Math.max(0, state.invuln - dt);
+
+    const rotSpeed = 4.8;
+    if (input.left)  ship.a -= rotSpeed * dt;
+    if (input.right) ship.a += rotSpeed * dt;
+
+    if (input.thrust){
+      const accel = 240;
+      ship.vx += Math.cos(ship.a) * accel * dt;
+      ship.vy += Math.sin(ship.a) * accel * dt;
+    }
+
+    const damp = Math.pow(0.42, dt);
+    ship.vx *= damp;
+    ship.vy *= damp;
+
+    ship.x += ship.vx * dt;
+    ship.y += ship.vy * dt;
+    ship.r = 12;
+    wrap(ship);
+
+    if (input.shoot && ship.alive) shoot();
+
+    for (let i = state.bullets.length - 1; i >= 0; i--){
+      const b = state.bullets[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+
+      if (b.x < -b.r) b.x = W + b.r;
+      else if (b.x > W + b.r) b.x = -b.r;
+      if (b.y < -b.r) b.y = H + b.r;
+      else if (b.y > H + b.r) b.y = -b.r;
+
+      if (b.life <= 0) state.bullets.splice(i, 1);
+    }
+
+    for (const s of state.shells){
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.rot += s.vr * dt;
+      wrap(s);
+    }
+
+    for (let i = state.particles.length - 1; i >= 0; i--){
+      const p = state.particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= Math.pow(0.15, dt);
+      p.vy *= Math.pow(0.15, dt);
+      p.t += dt;
+      if (p.t >= p.life) state.particles.splice(i, 1);
+    }
+
+    for (let i = state.shells.length - 1; i >= 0; i--){
+      const s = state.shells[i];
+      const sr = shellRadiusForCollision(s.r);
+
+      let hitIndex = -1;
+      for (let j = state.bullets.length - 1; j >= 0; j--){
+        const b = state.bullets[j];
+        if (Math.hypot(b.x - s.x, b.y - s.y) < sr + b.r){
+          hitIndex = j;
+          break;
+        }
+      }
+      if (hitIndex !== -1){
+        state.bullets.splice(hitIndex, 1);
+        state.shells.splice(i, 1);
+        splitShell(s);
+      }
+    }
+
+    if (ship.alive){
+      for (const s of state.shells){
+        const sr = shellRadiusForCollision(s.r);
+        if (Math.hypot(ship.x - s.x, ship.y - s.y) < sr + ship.r*0.9){
+          killShip();
+          break;
+        }
+      }
+    }
+
+    if (state.shells.length === 0){
+      state.wave += 1;
+      waveEl.textContent = state.wave;
+      spawnWave(state.wave);
+    }
+
+    clear();
+    drawShells();
+    drawBullets();
+    drawShip();
+    drawParticles(dt);
+
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.strokeStyle = 'rgba(233,238,247,0.30)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(W/2, H/2, Math.min(W,H)*0.38, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---------- Overlay / flow ----------
+  function showOverlay(title, descHTML, canRestart){
+    titleEl.textContent = title;
+    descEl.innerHTML = descHTML;
+
+    overlay.style.display = 'grid';
+    startBtn.style.display = state.wave === 1 && state.score === 0 && state.lives === 3 ? '' : 'none';
+    resumeBtn.style.display = (!state.over && input.paused) ? '' : 'none';
+    restartBtn.style.display = canRestart ? '' : 'none';
+  }
+
+  function hideOverlay(){
+    overlay.style.display = 'none';
+  }
+
+  function startGame(){
+    state.running = true;
+    state.over = false;
+    input.paused = false;
+    state.wave = 1;
+    state.score = 0;
+    state.lives = 3;
+    scoreEl.textContent = '0';
+    livesEl.textContent = '3';
+    waveEl.textContent = '1';
+    spawnWave(1);
+    hideOverlay();
+  }
+
+  startBtn.addEventListener('click', () => startGame());
+  resumeBtn.addEventListener('click', () => { input.paused = false; hideOverlay(); });
+  restartBtn.addEventListener('click', () => startGame());
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.running && !state.over){
+      input.paused = true;
+      showOverlay('Paused', 'Game paused when the tab went to the background.', false);
+      startBtn.style.display = 'none';
+      resumeBtn.style.display = '';
+      restartBtn.style.display = '';
+    }
+  });
+
+  const ro = new ResizeObserver(() => {
+    resize();
+    initStars();
+  });
+  ro.observe(canvas);
+
+  showOverlay('Pasta Shells', 'Tap <b>Start</b>. On iPhone, use the buttons below (Left, Right, Thrust, Shoot).', true);
+
+  requestAnimationFrame(step);
 })();
 </script>
 </body>
